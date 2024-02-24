@@ -34,7 +34,6 @@ uint MAXPRC = 80;
 uint current_pwm = 0;
 
 uint goal_pwm = 0;
-uint stepsize = 0;
 
 #define UPDATERATE_MS 20
 #define MINSTEP 10

@@ -74,7 +74,7 @@ void TaskSendIR(void *pvParameters)
                 {
                     // pin indicator was removed from the ir mask.
                     // TODO: trigger some short flashing once a ir command is sent.
-                    uint32_t ir_pin_mask = 0 | message.ir_internal << BLASTER_PIN_IR_INTERNAL | message.ir_ext1 << BLASTER_PIN_IR_OUT_1 | message.ir_ext2 << BLASTER_PIN_IR_OUT_2;
+                    uint32_t ir_pin_mask = message.ir_internal << BLASTER_PIN_IR_INTERNAL | message.ir_ext1 << BLASTER_PIN_IR_OUT_1 | message.ir_ext2 << BLASTER_PIN_IR_OUT_2;
                     irsend.setPinMask(ir_pin_mask);
                     switch (message.format)
                     {

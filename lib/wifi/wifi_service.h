@@ -32,7 +32,7 @@ private:
     char wifihostname[50] = {0};
 
     boolean reconnect = false;
-    unsigned long previousMillis;
+    unsigned long previousMillis = 0;
 };
 
 #endif

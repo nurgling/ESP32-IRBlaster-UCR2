@@ -31,9 +31,16 @@ void setup()
     wifiSrv.connect();
 
     // Task for controlling the LED is always required
-    const BaseType_t ledTaskHandle = xTaskCreatePinnedToCore(
+    TaskHandle_t *ledTaskHandle = NULL;
+    BaseType_t taskCreate;
+    taskCreate = xTaskCreatePinnedToCore(
         TaskLed, "Task Led Control",
-        8192, NULL, 2, NULL, 0);
+        8192, NULL, 2, ledTaskHandle, 0);
+
+    if(taskCreate != pdPASS)
+    {
+        Serial.printf("Creation of led task failed. Returnvalue: %d.\n", taskCreate);
+    }
 
     if (wifiSrv.isActive())
     {
@@ -50,19 +57,34 @@ void setup()
         }
 
         // tasks for controlling the ir output via wifi
-        const BaseType_t webTaskHandle = xTaskCreatePinnedToCore(
+        TaskHandle_t *webTaskHandle = NULL;
+        taskCreate = xTaskCreatePinnedToCore(
             TaskWeb, "Task Web/Websocket server",
-            16384, NULL, 2, NULL, 0);
-        const BaseType_t irTaskHandle = xTaskCreatePinnedToCore(
+            16384, NULL, 2, webTaskHandle, 0);
+        if(taskCreate != pdPASS)
+        {
+            Serial.printf("Creation of web task failed. Returnvalue: %d.\n", taskCreate);
+        }
+        TaskHandle_t *irTaskHandle = NULL;
+        taskCreate = xTaskCreatePinnedToCore(
             TaskSendIR, "Task IR send task",
-            32768, NULL, 3 /* highest priority */, NULL, 1);
+            32768, NULL, 3 /* highest priority */, irTaskHandle, 1);
+        if(taskCreate != pdPASS)
+        {
+            Serial.printf("Creation of IR task failed. Returnvalue: %d.\n", taskCreate);
+        }            
     }
     else
     {
         // fallback to bluetooth discovery
-        const BaseType_t btTaskHandle = xTaskCreatePinnedToCore(
+        TaskHandle_t *btTaskHandle = NULL;
+        taskCreate = xTaskCreatePinnedToCore(
             TaskBT, "Task Bluetooth",
-            32768, NULL, 2, NULL, 0);
+            32768, NULL, 2, btTaskHandle, 0);
+        if(taskCreate != pdPASS)
+        {
+            Serial.printf("Creation of bt task failed. Returnvalue: %d.\n", taskCreate);
+        }
     }
 }
 

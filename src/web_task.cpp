@@ -61,10 +61,10 @@ void onWSEvent(AsyncWebSocket *server,
         break;
     case WS_EVT_DATA:
     {
-        AwsFrameInfo *info = (AwsFrameInfo *)arg;
+        const AwsFrameInfo *info = static_cast<AwsFrameInfo *>(arg);
 
         //enable for debugging output for WS messages
-        debugWSMessage(info, data, len);
+        //debugWSMessage(info, data, len);
 
         // currently we are only expecting text messages
         if (info->opcode == WS_BINARY )
@@ -134,16 +134,16 @@ void onWSEvent(AsyncWebSocket *server,
         Serial.print("WebSocket Event PONG\n");
         break;
     case WS_EVT_ERROR:
-        Serial.printf("WebSocket client #%u error #%u: %s\n", client->id(), *((uint16_t *)arg), (char *)data);
+        Serial.printf("WebSocket client #%u error #%u: %s\n", client->id(), *(static_cast<uint16_t *>(arg)), static_cast<unsigned char *>(data));
         break;
     }
     if (!output.isNull())
     {
         // send document back
-        size_t len = measureJson(output);
-        AsyncWebSocketMessageBuffer *buf = server->makeBuffer(len);
-        serializeJson(output, buf->get(), len);
-        Serial.printf("Raw JSON response %.*s\n", len, buf->get());
+        size_t out_len = measureJson(output);
+        AsyncWebSocketMessageBuffer *buf = server->makeBuffer(out_len);
+        serializeJson(output, buf->get(), out_len);
+        Serial.printf("Raw JSON response %.*s\n", out_len, buf->get());
         client->text(buf);
 
         // check if we have to close the ws connection (failed auth)
