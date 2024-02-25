@@ -17,23 +17,23 @@
 #define SOCKET_DATA_SIZE 4096
 
 char socketData[SOCKET_DATA_SIZE];
-int currSocketBufferIndex=0;
+uint16_t currSocketBufferIndex=0;
 
 void notFound(AsyncWebServerRequest *request)
 {
-    Serial.printf("404 for: %s\n", request->url());
+    Serial.printf("404 for: %s\n", request->url().c_str());
     request->send(404, "text/plain", "Not found");
 }
 
-void debugWSMessage(AwsFrameInfo *info, uint8_t *pay_data, size_t pay_len)
+void debugWSMessage(const AwsFrameInfo *info, uint8_t *pay_data, size_t pay_len)
 {
     Serial.println("Debugging received websocket message");
     Serial.printf("  Frame.Final: %s\n", info->final?"True":"False");
     Serial.printf("  Frame.Opcode: %u\n", info->opcode);
     Serial.printf("  Frame.Masked: %s\n", info->masked?"True":"False");
-    Serial.printf("  Frame.Payload Length: %u\n", info->len);
+    Serial.printf("  Frame.Payload Length: %llu\n", info->len);
     Serial.printf("  Info-Num: %u\n", info->num);
-    Serial.printf("  Info-Index: %u\n", info->index);
+    Serial.printf("  Info-Index: %llu\n", info->index);
     Serial.printf("  Info-MsgOpcode: %u\n", info->message_opcode);    
     Serial.printf("  Length: %u\n", pay_len);
     Serial.printf("  Data: %.*s\n\n", pay_len, pay_data);
@@ -113,7 +113,7 @@ void onWSEvent(AsyncWebSocket *server,
                 }
                 else
                 {
-                    Serial.printf("Received non-final WS frame. Current buffer content: %.*s\n", currSocketBufferIndex, socketData);
+                    Serial.printf("Received non-final WS frame. Size of current buffer content: %u/%llu bytes.\n", currSocketBufferIndex, info->len);
                 }
             }
         }

@@ -14,7 +14,7 @@ void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
 }
 
 void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info){
-    Serial.printf("IP Address: %s\n", WiFi.localIP().toString());
+    Serial.printf("IP Address: %s\n", WiFi.localIP().toString().c_str());
     MDNSService::getInstance().restartService();
 }
 

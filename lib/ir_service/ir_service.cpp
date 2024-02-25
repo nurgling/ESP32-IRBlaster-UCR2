@@ -140,7 +140,7 @@ void buildHexMessage(ir_message_t &message)
         uint8_t *statePtr = &message.code8[stateSize - 1];
 
         // Convert the string into a state array of the correct length.
-        for (uint16_t i = 0; i < hexstrlength; i++)
+        for (uint64_t i = 0; i < hexstrlength; i++)
         {
             // Grab the next least sigificant hexadecimal digit from the string.
             uint8_t c = tolower(hexstr[hexstrlength + strOffset - i - 1]);
@@ -232,14 +232,14 @@ void queueIR(JsonDocument &input, JsonDocument &output)
 
     if (strlen(newCode) > sizeof(irCode))
     {
-        Serial.printf("Length of sent code is longer than allocated buffer. Length = %d; Max = %s\n", strlen(newCode), sizeof(irCode));
+        Serial.printf("Length of sent code is longer than allocated buffer. Length = %u; Max = %u\n", strlen(newCode), sizeof(irCode));
         api_fillDefaultResponseFields(input, output, 400);
         return;
     }
 
     if (strlen(newFormat) > sizeof(irFormat))
     {
-        Serial.printf("Length of sent format is longer than allocated buffer. Length = %d; Max = %s\n", strlen(newFormat), sizeof(irFormat));
+        Serial.printf("Length of sent format is longer than allocated buffer. Length = %u; Max = %u\n", strlen(newFormat), sizeof(irFormat));
         api_fillDefaultResponseFields(input, output, 400);
         return;
     }

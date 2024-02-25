@@ -223,7 +223,7 @@ void processDockMessage(JsonDocument &request, JsonDocument &response){
     }
     else
     {
-        Serial.printf("Unsupported command %s\n", command);
+        Serial.printf("Unsupported command %s\n", command.c_str());
         replyWithError(request, response, 400, "Unsupported command");
     }
 }
@@ -247,7 +247,7 @@ void api_processData(JsonDocument &request, JsonDocument &response){
     }
     else
     {
-        Serial.printf("Unknown type %s\n", type);
+        Serial.printf("Unknown type %s\n", type.c_str());
         api_fillDefaultResponseFields(request, response, 400);
     }
 }
