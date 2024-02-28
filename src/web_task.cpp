@@ -14,7 +14,7 @@
 #include "web_task.h"
 #include "blaster_config.h"
 
-#define SOCKET_DATA_SIZE 4096
+#define SOCKET_DATA_SIZE 8192
 
 char socketData[SOCKET_DATA_SIZE];
 uint16_t currSocketBufferIndex=0;

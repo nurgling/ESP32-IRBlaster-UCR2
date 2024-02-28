@@ -14,7 +14,7 @@
 //#include <libconfig.h>
 
 
-#define MAX_IR_TEXT_CODE_LENGTH 2048
+#define MAX_IR_TEXT_CODE_LENGTH 4096
 #define MAX_IR_FORMAT_TYPE 50
 
 // Current text ir code

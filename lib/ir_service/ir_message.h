@@ -6,7 +6,7 @@
 #include <Arduino.h>
 #include <IRsend.h>
 
-#define MAX_IR_CODE_LENGTH 2048
+#define MAX_IR_CODE_LENGTH 4096
 
 enum ir_action {
     stop,
