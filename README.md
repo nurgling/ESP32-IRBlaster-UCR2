@@ -18,13 +18,16 @@ multi-room setups.
 ## Getting Started
 
 1. Add your specific board to ``platformio.ini``. Feel free to contribute this back as a pull-request. 
-1. Modify pin mappings, if required in ``blaster_config.h``.
+1. Modify pin mappings, if required in ``lib/config/blaster_config.h``.
+1. For enabling the *learning of IR codes* you have to add ``-DBLASTER_ENABLE_IR_LEARN=true`` to the build_flags of your used Platform.io env.
+1. IR learning is still under development
 
 ## Electronics
 
 At least one IR led + transistors and resistors is required for this to operate.
+IR learning was tested with an CHQ1838 Infrared receiver module.
 
-Schematic:
+Schematic (⚠️ needs update for IR learning!):
 
 ![Serving suggestion](https://github.com/petchmakes/ESP32-IRBlaster-UCR2/blob/main/kicad/schematic.png?raw=true)
 
