@@ -27,7 +27,7 @@
 
 #if BLASTER_ENABLE_IR_LEARN == true
 #ifndef BLASTER_PIN_IR_LEARN
-#define BLASTER_PIN_IR_LEARN 5
+#define BLASTER_PIN_IR_LEARN 16
 #endif
 #endif
 
