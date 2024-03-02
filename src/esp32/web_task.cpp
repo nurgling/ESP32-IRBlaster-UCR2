@@ -7,6 +7,8 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 
+#include <esp_log.h>
+
 #include <mdns_service.h>
 #include <api_service.h>
 #include <libconfig.h>
@@ -17,26 +19,28 @@
 #define SOCKET_DATA_SIZE 4096
 
 char socketData[SOCKET_DATA_SIZE];
-uint16_t currSocketBufferIndex=0;
+uint16_t currSocketBufferIndex = 0;
+
+static const char *TAG = "webtask";
 
 void notFound(AsyncWebServerRequest *request)
 {
-    Serial.printf("404 for: %s\n", request->url().c_str());
+    ESP_LOGW(TAG, "404 for: %s", request->url().c_str());
     request->send(404, "text/plain", "Not found");
 }
 
 void debugWSMessage(const AwsFrameInfo *info, uint8_t *pay_data, size_t pay_len)
 {
-    Serial.println("Debugging received websocket message");
-    Serial.printf("  Frame.Final: %s\n", info->final?"True":"False");
-    Serial.printf("  Frame.Opcode: %u\n", info->opcode);
-    Serial.printf("  Frame.Masked: %s\n", info->masked?"True":"False");
-    Serial.printf("  Frame.Payload Length: %llu\n", info->len);
-    Serial.printf("  Info-Num: %u\n", info->num);
-    Serial.printf("  Info-Index: %llu\n", info->index);
-    Serial.printf("  Info-MsgOpcode: %u\n", info->message_opcode);    
-    Serial.printf("  Length: %u\n", pay_len);
-    Serial.printf("  Data: %.*s\n\n", pay_len, pay_data);
+    ESP_LOGV(TAG, "Verbose debugging the received websocket message");
+    ESP_LOGV(TAG, "  Frame.Final: %s", info->final ? "True" : "False");
+    ESP_LOGV(TAG, "  Frame.Opcode: %u", info->opcode);
+    ESP_LOGV(TAG, "  Frame.Masked: %s", info->masked ? "True" : "False");
+    ESP_LOGV(TAG, "  Frame.Payload Length: %llu", info->len);
+    ESP_LOGV(TAG, "  Info-Num: %u", info->num);
+    ESP_LOGV(TAG, "  Info-Index: %llu", info->index);
+    ESP_LOGV(TAG, "  Info-MsgOpcode: %u", info->message_opcode);
+    ESP_LOGV(TAG, "  Length: %u", pay_len);
+    ESP_LOGV(TAG, "  Data: %.*s", pay_len, pay_data);
     Serial.flush();
 }
 
@@ -52,25 +56,25 @@ void onWSEvent(AsyncWebSocket *server,
     switch (type)
     {
     case WS_EVT_CONNECT:
-        Serial.printf("WebSocket client #%u connected from %s\n", client->id(), client->remoteIP().toString().c_str());
+        ESP_LOGI(TAG, "WebSocket client #%u connected from %s", client->id(), client->remoteIP().toString().c_str());
         client->keepAlivePeriod(1);
         api_buildConnectionResponse(input, output);
         break;
     case WS_EVT_DISCONNECT:
-        Serial.printf("WebSocket client #%u disconnected\n", client->id());
+        ESP_LOGI(TAG, "WebSocket client #%u disconnected", client->id());
         break;
     case WS_EVT_DATA:
     {
         const AwsFrameInfo *info = static_cast<AwsFrameInfo *>(arg);
 
-        //enable for debugging output for WS messages
-        //debugWSMessage(info, data, len);
+        // enable for debugging output for WS messages
+        debugWSMessage(info, data, len);
 
         // currently we are only expecting text messages
-        if (info->opcode == WS_BINARY )
+        if (info->opcode == WS_BINARY)
         {
             // receiving new message (first frame) reset buffer index
-            Serial.printf("Websocket received an unhandled binary message from %s.\n", client->remoteIP().toString().c_str());
+            ESP_LOGW(TAG, "Websocket received an unhandled binary message from %s.", client->remoteIP().toString().c_str());
         }
         if ((info->opcode == WS_TEXT) && (info->index == 0))
         {
@@ -85,7 +89,7 @@ void onWSEvent(AsyncWebSocket *server,
             {
                 // TODO: check about feasible max data size we expect.
                 // Any IR code longer than MAX_IR_TEXT_CODE_LENGTH (2048) will not be queyed anyways
-                Serial.printf("Raw JSON message too big for buffer. Not processing.\n");
+                ESP_LOGE(TAG, "Raw JSON message too big for buffer. Not processing.");
                 // TODO: what will be returned in this case? Currently this will lead to a timeout.
             }
             else
@@ -99,52 +103,48 @@ void onWSEvent(AsyncWebSocket *server,
 
                 // check if this is the end of the message
                 // unfortunately we cannot trust final flag in header and need to check the overall length
-                //if (info->final) 
-                if(currSocketBufferIndex == info->len)
+                // if (info->final)
+                if (currSocketBufferIndex == info->len)
                 {
-                    Serial.printf("Raw JSON Message: %.*s\n", currSocketBufferIndex, socketData);
+                    ESP_LOGD(TAG, "Raw JSON Message: %.*s", currSocketBufferIndex, socketData);
                     // deserialize data after last chunk
                     DeserializationError err = deserializeJson(input, socketData, currSocketBufferIndex);
                     if (err)
                     {
-                        Serial.print(F("deserializeJson() failed with code "));
-                        Serial.println(err.f_str());
+                        ESP_LOGE(TAG, "deserializeJson() failed with code %s", err.f_str());
                     }
                 }
                 else
                 {
-                    Serial.printf("Received non-final WS frame. Size of current buffer content: %u/%llu bytes.\n", currSocketBufferIndex, info->len);
+                    ESP_LOGI(TAG, "Received non-final WS frame. Size of current buffer content: %u/%llu bytes.", currSocketBufferIndex, info->len);
                 }
             }
         }
         if (!input.isNull())
         {
-            api_processData(input, output);
+            api_processData(input, output, client);
         }
         else
         {
             if (currSocketBufferIndex == info->len)
             {
-                Serial.print("WebSocket received no JSON document. ");
-                Serial.printf("Raw Message of length %d received: %.*s\n", len, len, data);
+                ESP_LOGE(TAG, "WebSocket received no JSON document. ");
+                ESP_LOGD(TAG, "Raw Message of length %d received: %.*s", len, len, data);
             }
         }
     }
     case WS_EVT_PONG:
-        Serial.print("WebSocket Event PONG\n");
+        ESP_LOGD(TAG, "WebSocket Event PONG");
         break;
     case WS_EVT_ERROR:
-        Serial.printf("WebSocket client #%u error #%u: %s\n", client->id(), *(static_cast<uint16_t *>(arg)), static_cast<unsigned char *>(data));
+        ESP_LOGE(TAG, "WebSocket client #%u error #%u: %s", client->id(), *(static_cast<uint16_t *>(arg)), static_cast<unsigned char *>(data));
         break;
     }
     if (!output.isNull())
     {
         // send document back
-        size_t out_len = measureJson(output);
-        AsyncWebSocketMessageBuffer *buf = server->makeBuffer(out_len);
-        serializeJson(output, buf->get(), out_len);
-        Serial.printf("Raw JSON response %.*s\n", out_len, buf->get());
-        client->text(buf);
+
+        api_sendJsonReply(output, client);
 
         // check if we have to close the ws connection (failed auth)
         String responseMsg = output["msg"].as<String>();
@@ -157,7 +157,7 @@ void onWSEvent(AsyncWebSocket *server,
         // check if we have to reboot
         if (output["reboot"].as<boolean>())
         {
-            Serial.println(F("Rebooting..."));
+            ESP_LOGI(TAG, "Rebooting...");
             delay(500);
             ESP.restart();
         }
@@ -166,7 +166,7 @@ void onWSEvent(AsyncWebSocket *server,
 
 void TaskWeb(void *pvParameters)
 {
-    Serial.printf("TaskWeb running on core %d\n", xPortGetCoreID());
+    ESP_LOGD(TAG, "TaskWeb running on core %d", xPortGetCoreID());
 
     AsyncWebServer server(Config::getInstance().API_port);
     AsyncWebSocket ws("/");

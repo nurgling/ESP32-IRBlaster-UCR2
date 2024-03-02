@@ -21,4 +21,14 @@
 #define BLASTER_PIN_IR_OUT_2 14
 #endif
 
+#ifndef BLASTER_ENABLE_IR_LEARN
+#define BLASTER_ENABLE_IR_LEARN false
+#endif
+
+#if BLASTER_ENABLE_IR_LEARN == true
+#ifndef BLASTER_PIN_IR_LEARN
+#define BLASTER_PIN_IR_LEARN 5
+#endif
+#endif
+
 #endif

@@ -12,6 +12,7 @@
 #include "ir_service.h"
 
 //#include <libconfig.h>
+static const char * TAG = "irservice";
 
 
 #define MAX_IR_TEXT_CODE_LENGTH 2048
@@ -21,7 +22,7 @@
 char irCode[MAX_IR_TEXT_CODE_LENGTH] = "";
 char irFormat[MAX_IR_FORMAT_TYPE] = "";
 
-
+bool irLearningActive=false;
 
 void buildProntoMessage(ir_message_t &message)
 {
@@ -38,7 +39,7 @@ void buildProntoMessage(ir_message_t &message)
     delimiter[0] = workingCode[4];
     if((delimiter[0] != ' ') && (delimiter[0] != ','))
     {
-        Serial.printf("Pronto delimiter not recognized. Prontocode: %s", workingCode);
+        ESP_LOGE(TAG, "Pronto delimiter not recognized. Prontocode: %s", workingCode);
     }
     
     char *hexCode = strtok_r(workingCode, delimiter, &workingPtr);
@@ -76,7 +77,7 @@ void buildHexMessage(ir_message_t &message)
 
     if (partcount != 4)
     {
-        Serial.print("Unvalid UC code");
+        ESP_LOGE(TAG, "Unvalid UC code");
         return;
     }
 
@@ -90,7 +91,7 @@ void buildHexMessage(ir_message_t &message)
     case decode_type_t::GLOBALCACHE:
     case decode_type_t::PRONTO:
     case decode_type_t::RAW:
-        Serial.print("The protocol specified is not supported by this program.");
+        ESP_LOGE(TAG, "The protocol specified is not supported by this program.");
         return;
     default:
         break;
@@ -99,7 +100,7 @@ void buildHexMessage(ir_message_t &message)
     uint16_t nbits = static_cast<uint16_t>(std::stoul(parts[2]));
     if (nbits == 0 && (nbits <= kStateSizeMax * 8))
     {
-        Serial.printf("No of bits %s is invalid\n", parts[2]);
+        ESP_LOGE(TAG, "No of bits %s is invalid", parts[2]);
         return;
     }
 
@@ -108,7 +109,7 @@ void buildHexMessage(ir_message_t &message)
     uint16_t repeats = static_cast<uint16_t>(std::stoul(parts[3]));
     if (repeats > 20)
     {
-        Serial.printf("Repeat count is too large: %d. Maximum is 20.\n", repeats);
+        ESP_LOGE(TAG, "Repeat count is too large: %d. Maximum is 20.", repeats);
         return;
     }
 
@@ -153,7 +154,7 @@ void buildHexMessage(ir_message_t &message)
             }
             else
             {
-                Serial.printf("Code %s contains non-hexidecimal characters.", parts[1]);
+                ESP_LOGE(TAG, "Code %s contains non-hexidecimal characters.", parts[1]);
                 return;
             }
             if (i % 2 == 1)
@@ -172,28 +173,68 @@ void buildHexMessage(ir_message_t &message)
     message.action = send;
 }
 
-void queueIRMessage(ir_message_t &message)
+bool queueIRMessage(ir_message_t &message, int waitingTime_ms=0)
 {
 
     if (irQueueHandle != NULL)
     {
-        int ret = xQueueSend(irQueueHandle, (void *)&message, 0);
+        int ret = xQueueSend(irQueueHandle, (void *)&message, waitingTime_ms / portTICK_PERIOD_MS);
         if (ret == pdTRUE)
         {
             // The message was successfully sent.
-            Serial.println("Action successfully sent to the IR Queue");
+            ESP_LOGD(TAG, "Action successfully sent to the IR Queue");
+            return true;
         }
         else if (ret == errQUEUE_FULL)
         {
-            Serial.println("The `TaskWeb` was unable to send message to IR Queue");
+            ESP_LOGE(TAG, "The `TaskWeb` was unable to send message to IR Queue");
         }
     }
     else
     {
-        Serial.println("The `TaskWeb` was unable to send message to IR Queue; no queue defined");
+        ESP_LOGE(TAG, "The `TaskWeb` was unable to send message to IR Queue; no queue defined");
     }
-
+    return false;
 }
+
+AsyncWebSocketClient *learningClient;
+void learnIRStart(JsonDocument &input, JsonDocument &output, AsyncWebSocketClient *wsClient)
+{
+    //backup old learning state
+    bool irLearningOld = irLearningActive;
+
+    // block other potential ir commands
+    // TODO: is this really safe, or do we need stronger synchronization mechanisms between parallel requests?
+    irLearningActive = true;
+
+    ir_message_t message;
+    message.action = learn_start;
+    if(!queueIRMessage(message, 500)){
+        api_replyWithError(input, output, 503, "IR learning could not be triggered");
+        ESP_LOGE(TAG, "IR learning could not be triggered");
+        //restore learning
+        irLearningActive = irLearningOld;
+    } 
+    else 
+    {
+        //save ws Client to respond the learned IR code
+        learningClient = wsClient;
+    }
+}
+
+void learnIRStop(JsonDocument &input, JsonDocument &output)
+{
+    ir_message_t message;
+    message.action = learn_stop;
+    if(!queueIRMessage(message, 500)){
+        api_replyWithError(input, output, 503, "IR learning could not be released");
+        ESP_LOGE(TAG, "IR learning could not be released");
+    } else {
+        irLearningActive = false;
+        learningClient = NULL;
+    }
+}
+
 
 void queueIR(JsonDocument &input, JsonDocument &output)
 {
@@ -210,6 +251,13 @@ void queueIR(JsonDocument &input, JsonDocument &output)
     message.ir_ext1 = ir_ext1;
     message.ir_ext2 = ir_ext2;
     message.repeat = newRepeat;
+
+    if(irLearningActive){
+        api_replyWithError(input, output, 503, "Canot send IR command. IR learning in progress.");
+        ESP_LOGE(TAG, "Canot send IR command. IR learning in progress.");
+        return;
+    }
+
 
     if (uxQueueMessagesWaiting(irQueueHandle) != 0) 
     {
@@ -230,17 +278,17 @@ void queueIR(JsonDocument &input, JsonDocument &output)
         }
     }
 
-    if (strlen(newCode) > sizeof(irCode))
+    if (strlen(newCode)+1 > sizeof(irCode))
     {
-        Serial.printf("Length of sent code is longer than allocated buffer. Length = %u; Max = %u\n", strlen(newCode), sizeof(irCode));
-        api_fillDefaultResponseFields(input, output, 400);
+        ESP_LOGE(TAG, "Length of sent code is longer than allocated buffer. Length = %u; Max = %u", strlen(newCode), sizeof(irCode));
+        api_replyWithError(input, output, 400, "Length of IR code exceeds buffer.");
         return;
     }
 
-    if (strlen(newFormat) > sizeof(irFormat))
+    if (strlen(newFormat)+1 > sizeof(irFormat))
     {
-        Serial.printf("Length of sent format is longer than allocated buffer. Length = %u; Max = %u\n", strlen(newFormat), sizeof(irFormat));
-        api_fillDefaultResponseFields(input, output, 400);
+        ESP_LOGE(TAG, "Length of sent format is longer than allocated buffer. Length = %u; Max = %u", strlen(newFormat), sizeof(irFormat));
+        api_replyWithError(input, output, 400, "Length of IR code format exceeds buffer.");
         return;
     }
 
@@ -261,8 +309,9 @@ void queueIR(JsonDocument &input, JsonDocument &output)
     }
     else
     {
-        Serial.printf("Unknown ir format %s\n", newFormat);
-        api_fillDefaultResponseFields(input, output, 400);
+        ESP_LOGE(TAG, "Unknown IR format %s", newFormat);
+        api_replyWithError(input, output, 400, "Unknown IR format");
+
         irCode[0] = 0;
         irFormat[0] = 0;
     }

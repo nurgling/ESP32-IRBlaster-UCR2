@@ -2,21 +2,27 @@
 
 // Provides API decoding service for communication with dock via bluetooth and wifi.
 
+#include <Arduino.h>
 #include <api_service.h>
+#include <esp_log.h>
 #include <ir_service.h>
+
 #include <mdns_service.h>
 #include <libconfig.h>
 
+static const char *TAG = "apiservice";
 
-void api_fillTypeIDCommand(JsonDocument &input, JsonDocument &output){
+void api_fillTypeIDCommand(JsonDocument &input, JsonDocument &output)
+{
     output["type"] = input["type"];
-    if(input.containsKey("id")){
+    if (input.containsKey("id"))
+    {
         output["req_id"] = input["id"];
     }
-    if(input.containsKey("command")){
+    if (input.containsKey("command"))
+    {
         output["msg"] = input["command"];
     }
-
 }
 
 void api_fillDefaultResponseFields(JsonDocument &input, JsonDocument &output, int code, boolean reboot)
@@ -65,12 +71,14 @@ void processSetConfig(JsonDocument &input, JsonDocument &output)
 
     if (input.containsKey("ssid") && input.containsKey("wifi_password"))
     {
+        ESP_LOGI(TAG, "Received new WIFI config");
+
         String ssid = input["ssid"].as<String>();
         String pass = input["wifi_password"].as<String>();
 
         Config::getInstance().setWifiSsid(ssid);
         Config::getInstance().setWifiPassword(pass);
-        Serial.println("Saved new WIFI config. SSID:" + ssid + " PASS:" + pass);
+        ESP_LOGD(TAG, "Saved new WIFI config. SSID: %s PASS: %s", ssid.c_str(), pass.c_str());
         output["reboot"] = true;
     }
 
@@ -80,7 +88,7 @@ void processSetConfig(JsonDocument &input, JsonDocument &output)
         if (friendlyname != Config::getInstance().getFriendlyName())
         {
             // friendlyname has changed. update conf
-            Serial.printf("Updating FriendlyName to %s\n", friendlyname.c_str());
+            ESP_LOGD(TAG, "Updating FriendlyName to %s", friendlyname.c_str());
             Config::getInstance().setFriendlyName(friendlyname);
             // inform other subsystems about the change (e.g., mdns, ...)
             MDNSService::getInstance().restartService();
@@ -88,67 +96,133 @@ void processSetConfig(JsonDocument &input, JsonDocument &output)
     }
 }
 
-void replyWithError(JsonDocument &request, JsonDocument &response, int errorCode, String errorMsg=""){
-    api_fillTypeIDCommand(request, response);
+void api_replyWithError(JsonDocument &request, JsonDocument &response, int errorCode, String errorMsg)
+{
+    api_fillDefaultResponseFields(request, response, errorCode);
 
-    response["code"] = errorCode;
-    if(errorMsg != ""){
+    if (errorMsg != "")
+    {
         response["error"] = errorMsg;
     }
 }
 
-void processPingMessage(JsonDocument &request, JsonDocument &response){
-    Serial.printf("Received Ping message type\n");
+void processPingMessage(JsonDocument &request, JsonDocument &response)
+{
+    ESP_LOGD(TAG, "Received Ping message type");
 
     response["type"] = request["type"];
     response["msg"] = "pong";
 }
 
-
-
-void processAuthMessage(JsonDocument &request, JsonDocument &response){
-    Serial.printf("Received auth message type\n");
+void processAuthMessage(JsonDocument &request, JsonDocument &response)
+{
+    ESP_LOGD(TAG, "Received auth message type");
 
     response["type"] = request["type"];
     response["msg"] = "authentication";
 
-    //check if the auth token matches our expected one
+    // check if the auth token matches our expected one
     String token = request["token"].as<String>();
-    if(token == Config::getInstance().getToken()){
-        //auth successful
-        Serial.printf("Authentification successful\n");
+    if (token == Config::getInstance().getToken())
+    {
+        // auth successful
+        ESP_LOGD(TAG, "Authentification successful");
         response["code"] = 200;
-    } else {
-        //auth failed - problem when trying to bind a previously configured dock with non-standard password!
-        Serial.printf("Authentification failed\n");
-        //response["code"] = 401;
+    }
+    else
+    {
+        // auth failed - problem when trying to bind a previously configured dock with non-standard password!
+        ESP_LOGW(TAG, "Authentification failed");
+        // response["code"] = 401;
         response["code"] = 200;
     }
 }
 
-//TODO: implement a nicer solution later than crossreferencing a function
+void api_sendJsonReply(JsonDocument &content, AsyncWebSocketClient *wsClient)
+{
+    // TODO: check if wsClient is connected and ready to send
+    if (wsClient != NULL)
+    {
+        size_t out_len = measureJson(content);
+        AsyncWebSocketMessageBuffer *buf = wsClient->server()->makeBuffer(out_len);
+        serializeJson(content, buf->get(), out_len);
+        ESP_LOGD(TAG, "Raw JSON response %.*s\n", out_len, buf->get());
+        wsClient->text(buf);
+    }
+}
+
+void api_buildIRCodeEvent(JsonDocument &event, String irCode)
+{
+    event["type"] = "event";
+    event["msg"] = "ir_receive";
+    event["ir_code"] = irCode;
+}
+
+void processIROnMessage(JsonDocument &request, JsonDocument &response, AsyncWebSocketClient *wsClient)
+{
+    ESP_LOGD(TAG, "Received learn IR on message");
+
+    // check if we are capable of learning IR codes
+    if (!Config::getInstance().getIRLearning())
+    {
+        api_replyWithError(request, response, 503, "IR learning not supported by dock.");
+        ESP_LOGW(TAG, "IR learning not supported by dock.");
+        return;
+    }
+    if (wsClient == NULL)
+    {
+        api_replyWithError(request, response, 503, "IR learning only supported via Websocket connection.");
+        ESP_LOGW(TAG, "IR learning only supported via Websocket connection.");
+        return;
+    }
+    api_fillDefaultResponseFields(request, response);
+    learnIRStart(request, response, wsClient);
+}
+
+void processIROffMessage(JsonDocument &request, JsonDocument &response)
+{
+    ESP_LOGD(TAG, "Received learn IR off message");
+
+    // check if we are capable of learning IR codes
+    if (!Config::getInstance().getIRLearning())
+    {
+        api_replyWithError(request, response, 503, "IR learning not supported by dock.");
+        ESP_LOGW(TAG, "IR learning not supported by dock.");
+        return;
+    }
+    api_fillDefaultResponseFields(request, response);
+    learnIRStop(request, response);
+}
+
+// TODO: implement a nicer solution later than crossreferencing a function
 extern void setLedStateIdentify();
 
-
-void processDockMessage(JsonDocument &request, JsonDocument &response){
+void processDockMessage(JsonDocument &request, JsonDocument &response, AsyncWebSocketClient *wsClient)
+{
     String command;
 
-    if (request.containsKey("msg")){
+    if (request.containsKey("msg"))
+    {
         command = request["msg"].as<String>();
-        if (command == "ping"){
-            //we got a ping message
+        if (command == "ping")
+        {
+            // we got a ping message
             processPingMessage(request, response);
             return;
         }
     }
 
-    if (!request.containsKey("command")){
-        replyWithError(request, response, 400, "Missing command field");
+    if (!request.containsKey("command"))
+    {
+        ESP_LOGE(TAG, "Missing command field in dock message");
+        api_replyWithError(request, response, 400, "Missing command field");
         return;
     }
     command = request["command"].as<String>();
+    ESP_LOGD(TAG, "Received dock message with command %s", command.c_str());
 
-    if (command == "get_sysinfo"){
+    if (command == "get_sysinfo")
+    {
         api_fillDefaultResponseFields(request, response);
         api_buildSysinfoResponse(request, response);
     }
@@ -167,23 +241,19 @@ void processDockMessage(JsonDocument &request, JsonDocument &response){
     {
         api_fillDefaultResponseFields(request, response);
         queueIR(request, response);
-
     }
     else if (command == "ir_stop")
     {
         api_fillDefaultResponseFields(request, response);
         stopIR(request, response);
-
     }
     else if (command == "ir_receive_on")
     {
-        // DO NOTHING BUT REPLY (for now)
-        api_fillDefaultResponseFields(request, response);
+        processIROnMessage(request, response, wsClient);
     }
     else if (command == "ir_receive_off")
     {
-        // DO NOTHING BUT REPLY (for now)
-        api_fillDefaultResponseFields(request, response);
+        processIROffMessage(request, response);
     }
     else if (command == "remote_charged")
     {
@@ -213,22 +283,23 @@ void processDockMessage(JsonDocument &request, JsonDocument &response){
     else if (command == "reboot")
     {
         api_fillDefaultResponseFields(request, response, 200, true);
-        //reboot is done after sending response
+        // reboot is done after sending response
     }
     else if (command == "reset")
     {
         api_fillDefaultResponseFields(request, response, 200, true);
         Config::getInstance().reset();
-        //reboot is done after sending response
+        // reboot is done after sending response
     }
     else
     {
-        Serial.printf("Unsupported command %s\n", command.c_str());
-        replyWithError(request, response, 400, "Unsupported command");
+        ESP_LOGE(TAG, "Unsupported command %s", command.c_str());
+        api_replyWithError(request, response, 400, "Unsupported command");
     }
 }
 
-void api_processData(JsonDocument &request, JsonDocument &response){
+void api_processData(JsonDocument &request, JsonDocument &response, AsyncWebSocketClient *wsClient)
+{
 
     String type;
 
@@ -239,16 +310,15 @@ void api_processData(JsonDocument &request, JsonDocument &response){
 
     if (type == "dock")
     {
-        processDockMessage(request, response);
-    } 
+        processDockMessage(request, response, wsClient);
+    }
     else if (type == "auth")
     {
         processAuthMessage(request, response);
     }
     else
     {
-        Serial.printf("Unknown type %s\n", type.c_str());
+        ESP_LOGE(TAG, "Unknown message type %s", type.c_str());
         api_fillDefaultResponseFields(request, response, 400);
     }
 }
-

@@ -1,18 +1,33 @@
 // Copyright 2024 Craig Petchell
+// LerningIR codes part added by Alex Koessler 2024
 
 #include <freertos/FreeRTOS.h>
 #include <IRsend.h>
+#include <IRrecv.h>
+
 #include <IRutils.h>
 
 #include <ir_message.h>
 #include <ir_task.h>
 #include <ir_queue.h>
+#include <libconfig.h>
+
+#include <api_service.h>
 
 #include "blaster_config.h"
+
+#include <esp_log.h>
+
+static const char *TAG = "irtask";
 
 uint16_t irRepeat = 0;
 ir_message_t repeatMessage;
 IRsend irsend(true, 0);
+
+#if BLASTER_ENABLE_IR_LEARN == true
+const uint16_t irRecvBufferSize = 1024;
+IRrecv irrecv(BLASTER_PIN_IR_LEARN, irRecvBufferSize, 15, true);
+#endif
 
 bool repeatCallback()
 {
@@ -26,9 +41,17 @@ bool repeatCallback()
 
 void irSetup()
 {
+    ESP_LOGD(TAG, "Setting up Pins for IR Sending");
     pinMode(BLASTER_PIN_IR_INTERNAL, OUTPUT);
     pinMode(BLASTER_PIN_IR_OUT_1, OUTPUT);
     pinMode(BLASTER_PIN_IR_OUT_2, OUTPUT);
+
+#if BLASTER_ENABLE_IR_LEARN == true
+    ESP_LOGD(TAG, "Setting up Pin for IR Lerning");
+    irrecv.setUnknownThreshold(1000);
+    irrecv.enableIRIn();
+    irrecv.pause();
+#endif
 
     irsend.setRepeatCallback(repeatCallback);
     irsend.begin();
@@ -55,17 +78,62 @@ void sendHexCode(ir_message_t &message)
     }
 }
 
-void TaskSendIR(void *pvParameters)
+#if BLASTER_ENABLE_IR_LEARN == true
+String receiveIR()
 {
-    Serial.printf("TaskSendIR running on core %d\n", xPortGetCoreID());
+    String code = "";
+    decode_results irRes;
+
+    if (irrecv.decode(&irRes))
+    {
+        irrecv.pause();
+
+        ESP_LOGV(TAG, resultToHumanReadableBasic(&irRes).c_str());
+        code += irRes.decode_type;
+        code += ";";
+        code += resultToHexidecimal(&irRes);
+        code += ";";
+        code += irRes.bits;
+        code += ";";
+        code += irRes.repeat;
+        ESP_LOGD(TAG, "Learned IR code in UC format: %d", code.c_str());
+    }
+    return code;
+}
+#endif
+
+bool receiveIRState = false;
+// TODO: this definitely needs to be done nicer
+extern AsyncWebSocketClient *learningClient;
+
+void TaskIR(void *pvParameters)
+{
+    ESP_LOGD(TAG, "TaskIR running on core %d", xPortGetCoreID());
 
     irSetup();
     ir_message_t message;
     for (;;)
     {
+
+#if BLASTER_ENABLE_IR_LEARN == true        
+        if (receiveIRState)
+        {
+            String code = receiveIR();
+            if (code != "")
+            {
+                // we learned an IR code. prepare for sending via websocket connection
+                JsonDocument eventMsg;
+                api_buildIRCodeEvent(eventMsg, code);
+                api_sendJsonReply(eventMsg, learningClient);
+                receiveIRState = false;
+            }
+        }
+#endif
+
         if (irQueueHandle != NULL)
         {
-            int ret = xQueueReceive(irQueueHandle, &message, portMAX_DELAY);
+            int ret = xQueueReceive(irQueueHandle, &message, 0);
+            // int ret = xQueueReceive(irQueueHandle, &message, portMAX_DELAY);
             if (ret == pdPASS)
             {
                 switch (message.action)
@@ -92,6 +160,18 @@ void TaskSendIR(void *pvParameters)
                     irRepeat += message.repeat;
                     break;
                 }
+                case learn_start:
+                {
+                    receiveIRState = true;
+                    ESP_LOGI(TAG, "Starting IR learning");
+                    break;
+                }
+                case learn_stop:
+                {
+                    receiveIRState = false;
+                    ESP_LOGI(TAG, "Stopping IR learning");
+                    break;
+                }
                 case stop:
                 default:
                 {
@@ -101,5 +181,6 @@ void TaskSendIR(void *pvParameters)
                 }
             }
         }
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }

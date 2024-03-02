@@ -8,6 +8,8 @@
 #ifndef LIBCONFIG_H
 #define LIBCONFIG_H
 
+#include "blaster_config.h"
+
 #include <Preferences.h>
 #include <nvs.h>
 #include <nvs_flash.h>
@@ -45,7 +47,7 @@ public:
 
     String getSerial();
 
-    const boolean getIRLearning() { return irlearning; }
+    const boolean getIRLearning() { return((BLASTER_ENABLE_IR_LEARN == true)?true:false); }
 
     const String getHWRevision() { return hwrevision; }
 
@@ -72,9 +74,6 @@ private:
     const String fwversion = "0.1.0";
     const String devicemodel = "KoeBlaster";
 
-    const boolean irlearning = false;
-
-    static Config *s_instance;
 };
 
 #endif

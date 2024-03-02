@@ -9,6 +9,10 @@
 #include "bt_service.h"
 #include <api_service.h>
 
+#include <esp_log.h>
+
+static const char * TAG = "bt";
+
 BluetoothService *BluetoothService::s_instance = nullptr;
 
 BluetoothService::BluetoothService()
@@ -20,11 +24,11 @@ void btConnectCallback(esp_spp_cb_event_t event, esp_spp_cb_param_t *param)
 {
   if (event == ESP_SPP_SRV_OPEN_EVT)
   {
-    Serial.println(F("BT Client connected"));
+    ESP_LOGI(TAG, "Bluetooth client connected");
   }
   if (event == ESP_SPP_CLOSE_EVT)
   {
-    Serial.println(F("BT Client disconnected"));
+    ESP_LOGI(TAG, "Bluetooth client disconnected");
   }
 }
 
@@ -33,7 +37,7 @@ void BluetoothService::sendCallback(JsonDocument responseJson)
   String outString;
   serializeJson(responseJson, outString);
   btSerial->println(outString);
-  Serial.println("Raw Json response: " + outString);
+  ESP_LOGD(TAG, "Raw Json response: %s", outString.c_str());
 }
 
 
@@ -43,12 +47,11 @@ void BluetoothService::init()
 
   if (btSerial->begin(Config::getInstance().getHostName()))
   {
-    Serial.print(F("BT initialized with Hostname "));
-    Serial.println(Config::getInstance().getHostName().c_str());
+    ESP_LOGI(TAG, "BT initialized with Hostname %s", Config::getInstance().getHostName().c_str());
   }
   else
   {
-    Serial.println(F("BT initialization failed!"));
+    ESP_LOGE(TAG, "BT initialization failed!");
   }
 }
 
@@ -73,13 +76,11 @@ void BluetoothService::handle()
 
     if (error)
     {
-      Serial.print(F("deserializeJson() failed: "));
-      Serial.println(error.c_str());
+      ESP_LOGE(TAG, "deserializeJson() failed: %s", error.c_str());
     }
     else
     {
-      Serial.print("Received Json: ");
-      Serial.println(m_receivedData.c_str());
+      ESP_LOGD(TAG, "Received Json: %s", m_receivedData.c_str());
 
       api_processData(requestJson, responseJson);
 
@@ -92,7 +93,7 @@ void BluetoothService::handle()
         // check if reboot is required
         if (responseJson["reboot"].as<boolean>())
         {
-          Serial.println(F("Rebooting..."));
+          ESP_LOGI(TAG, "Rebooting...");
           delay(1000);
           ESP.restart();
         }
