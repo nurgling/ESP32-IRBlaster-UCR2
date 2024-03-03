@@ -1,17 +1,13 @@
 // Copyright 2024 Craig Petchell
 
-
-#include <string.h>
-#include <IRutils.h>
-
-#include <api_service.h>
-
-
+#include <Arduino.h>
+#include "ir_service.h"
 #include "ir_queue.h"
 #include "ir_message.h"
-#include "ir_service.h"
 
-//#include <libconfig.h>
+#include <api_service.h>
+#include <IRutils.h>
+
 static const char * TAG = "irservice";
 
 

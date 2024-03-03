@@ -1,20 +1,20 @@
 // Copyright 2024 Craig Petchell
 // LerningIR codes part added by Alex Koessler 2024
 
+#include <Arduino.h>
+#include "ir_task.h"
+
 #include <freertos/FreeRTOS.h>
+
 #include <IRsend.h>
 #include <IRrecv.h>
-
 #include <IRutils.h>
 
 #include <ir_message.h>
-#include <ir_task.h>
 #include <ir_queue.h>
 #include <libconfig.h>
-
 #include <api_service.h>
-
-#include "blaster_config.h"
+#include <blaster_config.h>
 
 #include <esp_log.h>
 

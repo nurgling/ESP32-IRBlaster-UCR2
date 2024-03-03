@@ -7,8 +7,9 @@
 
 #include <Arduino.h>
 #include "libconfig.h"
-#include <stddef.h>
-#include <string.h>
+
+//#include <stddef.h>
+//#include <string.h>
 
 #include <esp_log.h>
 

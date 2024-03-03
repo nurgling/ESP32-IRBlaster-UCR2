@@ -9,12 +9,7 @@
 #define BT_SERVICE_H
 
 #include <Arduino.h>
-
 #include <ArduinoJson.h>
-#include <api_service.h>
-
-#include <libconfig.h>
-
 #include "BluetoothSerial.h"
 
 

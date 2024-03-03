@@ -1,10 +1,11 @@
 // Copyright 2024 Alex Koessler
 
-#include <freertos/FreeRTOS.h>
 #include <Arduino.h>
-
 #include "led_task.h"
-#include "blaster_config.h"
+
+#include <freertos/FreeRTOS.h>
+
+#include <blaster_config.h>
 
 #include <esp_log.h>
 

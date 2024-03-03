@@ -1,8 +1,11 @@
 // Copyright 2024 Craig Petchell
 // Contributions by Alex Koessler
 
-#include <freertos/FreeRTOS.h>
 #include <Arduino.h>
+#include "web_task.h"
+#include "blaster_config.h"
+
+#include <freertos/FreeRTOS.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
@@ -13,8 +16,6 @@
 #include <api_service.h>
 #include <libconfig.h>
 
-#include "web_task.h"
-#include "blaster_config.h"
 
 #define SOCKET_DATA_SIZE 4096
 
@@ -41,7 +42,6 @@ void debugWSMessage(const AwsFrameInfo *info, uint8_t *pay_data, size_t pay_len)
     ESP_LOGV(TAG, "  Info-MsgOpcode: %u", info->message_opcode);
     ESP_LOGV(TAG, "  Length: %u", pay_len);
     ESP_LOGV(TAG, "  Data: %.*s", pay_len, pay_data);
-    Serial.flush();
 }
 
 void onWSEvent(AsyncWebSocket *server,

@@ -5,8 +5,12 @@
 
 // Provides mDNS Service that announces the dock to remotes in the same network.
 
+#include <Arduino.h>
 #include "mdns_service.h"
+#include <ESPmDNS.h>
+
 #include <esp_log.h>
+
 
 static const char * TAG = "mDNS";
 
@@ -29,7 +33,6 @@ void MDNSService::startService()
     }
     else
     {
-
         // Adding required mDNS services
         MDNS.addService("_uc-dock", "_tcp", m_config.API_port);
         MDNS.addServiceTxt("_uc-dock", "_tcp", "rev", m_config.getHWRevision());

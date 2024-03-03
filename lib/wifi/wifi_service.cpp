@@ -3,7 +3,9 @@
 
 // Provides WiFi Service that connects the Dock to a Wifi network and handles reconnections if needed.
 
+#include <Arduino.h>
 #include "wifi_service.h"
+
 #include <mdns_service.h>
 
 #include <esp_log.h>

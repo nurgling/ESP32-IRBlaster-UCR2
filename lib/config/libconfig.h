@@ -8,6 +8,7 @@
 #ifndef LIBCONFIG_H
 #define LIBCONFIG_H
 
+#include <Arduino.h>
 #include "blaster_config.h"
 
 #include <Preferences.h>

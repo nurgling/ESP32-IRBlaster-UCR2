@@ -1,9 +1,10 @@
 // Copyright 2024 Alex Koessler
 
-#include <freertos/FreeRTOS.h>
 #include <Arduino.h>
+#include "bt_task.h"
 
-#include <bt_task.h>
+#include <freertos/FreeRTOS.h>
+
 #include <bt_service.h>
 
 #include <esp_log.h>

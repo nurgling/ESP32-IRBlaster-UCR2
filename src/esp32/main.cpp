@@ -1,23 +1,23 @@
 // Copyright 2024 Craig Petchell
 // Contributions by Alex Koessler
 
+#include <Arduino.h>
+#include "ir_task.h"
+#include "web_task.h"
+#include "bt_task.h"
+#include "led_task.h"
+
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <Arduino.h>
+
 #include <WiFi.h>
 #include <IRsend.h>
 
 #include <libconfig.h>
 #include <mdns_service.h>
 #include <wifi_service.h>
-
 #include <ir_message.h>
 #include <ir_queue.h>
-
-#include "ir_task.h"
-#include "web_task.h"
-#include "bt_task.h"
-#include "led_task.h"
 
 #include <esp_log.h>
 

@@ -7,7 +7,9 @@
 // Provides bluetooth service for initial configuration of dock without Wifi.
 
 #include "bt_service.h"
+
 #include <api_service.h>
+#include <libconfig.h>
 
 #include <esp_log.h>
 

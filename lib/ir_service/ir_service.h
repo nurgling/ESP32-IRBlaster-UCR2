@@ -17,6 +17,7 @@ void queueIR(JsonDocument &input, JsonDocument &output);
 void stopIR(JsonDocument &input, JsonDocument &output);
 
 void learnIRStart(JsonDocument &input, JsonDocument &output, AsyncWebSocketClient *wsClient);
+
 void learnIRStop(JsonDocument &input, JsonDocument &output);
 
 

@@ -10,7 +10,7 @@
 #define MDNS_SERVICE_H
 
 #include <Arduino.h>
-#include <ESPmDNS.h>
+
 #include <libconfig.h>
 
 class MDNSService
