@@ -1,10 +1,15 @@
 // Copyright 2024 Alex Koessler
 
-#include <freertos/FreeRTOS.h>
 #include <Arduino.h>
-
 #include "led_task.h"
-#include "blaster_config.h"
+
+#include <freertos/FreeRTOS.h>
+
+#include <blaster_config.h>
+
+#include <esp_log.h>
+
+static const char *TAG = "ledtask";
 // #include <bt_service.h>
 
 // normal: breath (white)
@@ -126,7 +131,7 @@ void setLedStateIdentify()
 
 void TaskLed(void *pvParameters)
 {
-    Serial.printf("TaskLed running on core %d\n", xPortGetCoreID());
+    ESP_LOGD(TAG, "TaskLed running on core %d", xPortGetCoreID());
 
     pinMode(BLASTER_PIN_INDICATOR, OUTPUT);
     const int ledChannel = 0;

@@ -5,8 +5,16 @@
 
 // Provides configuration service that persisting dock settings.
 
-#include "libconfig.h"
 #include <Arduino.h>
+#include "libconfig.h"
+
+//#include <stddef.h>
+//#include <string.h>
+
+#include <esp_log.h>
+
+static const char * TAG = "config";
+
 #include <WiFi.h>
 
 
@@ -16,7 +24,7 @@ Config::Config()
     // if no LED brightness setting, set default
     if (getLedBrightness() == 0)
     {
-        Serial.println("Setting default brightness");
+        ESP_LOGD(TAG, "Setting default brightness");
         setLedBrightness(m_defaultLedBrightness);
     }
 
@@ -24,7 +32,7 @@ Config::Config()
     if (getFriendlyName() == "")
     {
         // get the default friendly name
-        Serial.println("Setting default friendly name");
+        ESP_LOGD(TAG, "Setting default friendly name");
         setFriendlyName(getHostName());
     }
 }
@@ -137,32 +145,40 @@ String Config::getSerial()
 // reset config to defaults
 void Config::reset()
 {
-    Serial.println("Resetting stored configuration.");
+    ESP_LOGI(TAG, "Resetting stored configuration.");
 
-    Serial.println("Resetting general config.");
+    ESP_LOGD(TAG, "Resetting general config.");
     m_preferences.begin("general", false);
     m_preferences.clear();
     m_preferences.end();
 
-    Serial.println("Resetting general config done.");
+    ESP_LOGD(TAG, "Resetting general config done.");
 
     delay(500);
 
-    Serial.println("Resetting wifi settings.");
+    ESP_LOGD(TAG, "Resetting wifi settings.");
     m_preferences.begin("wifi", false);
     m_preferences.clear();
     m_preferences.end();
 
-    Serial.println("Resetting wifi settings done.");
+    ESP_LOGD(TAG, "Resetting wifi settings done.");
 
     delay(500);
 
-    Serial.println("Erasing flash.");
-    int err;
+    ESP_LOGD(TAG, "Erasing flash.");
+    esp_err_t err;
     err = nvs_flash_init();
-    Serial.println("nvs_flash_init: " + err);
+    if(err == ESP_OK){
+        ESP_LOGV(TAG, "nvs_flash_init OK");
+    } else{
+        ESP_LOGE(TAG, "nvs_flash_init Error: %d", err);
+    }
     err = nvs_flash_erase();
-    Serial.println("nvs_flash_erase: " + err);
+    if(err == ESP_OK){
+        ESP_LOGV(TAG, "nvs_flash_erase OK");
+    } else{
+        ESP_LOGE(TAG, "nvs_flash_erase Error: %d", err);
+    }
 
     delay(500);
 

@@ -5,8 +5,14 @@
 
 // Provides mDNS Service that announces the dock to remotes in the same network.
 
+#include <Arduino.h>
 #include "mdns_service.h"
+#include <ESPmDNS.h>
 
+#include <esp_log.h>
+
+
+static const char * TAG = "mDNS";
 
 void MDNSService::startService()
 {
@@ -16,17 +22,17 @@ void MDNSService::startService()
     // getting hostname from config and storing it statically
     hostname = m_config.getHostName();
 
-    Serial.println(F("Starting mDNS ..."));
+    ESP_LOGD(TAG, "Starting mDNS ...");
     // TODO: Add max retries for MDNS starting
+
     if (!MDNS.begin(hostname))
     {
-        Serial.println(F("Error setting up mDNS responder!"));
+        ESP_LOGE(TAG, "Error setting up mDNS responder!");
         // try again to start mDNS immediately in next loop iteration
         m_forceRestart = true;
     }
     else
     {
-
         // Adding required mDNS services
         MDNS.addService("_uc-dock", "_tcp", m_config.API_port);
         MDNS.addServiceTxt("_uc-dock", "_tcp", "rev", m_config.getHWRevision());
@@ -35,10 +41,10 @@ void MDNSService::startService()
         MDNS.addServiceTxt("_uc-dock", "_tcp", "name", m_config.getFriendlyName());
         // available in archived repo but not used in v2 any more?
         // MDNS.addService("_uc-dock-ota", "_tcp", m_config.OTA_port);
-        Serial.printf("Started mDNS with hostname: %s\n", hostname.c_str());
-        Serial.printf("Announcing friendly name: %s\n", m_config.getFriendlyName().c_str());
+        ESP_LOGI(TAG, "Started mDNS with hostname: %s", hostname.c_str());
+        ESP_LOGI(TAG, "Announcing friendly name: %s", m_config.getFriendlyName().c_str());
         
-        Serial.println(F("mDNS services updated"));
+        ESP_LOGD(TAG, "mDNS services updated");
         m_forceRestart = false;
     }
 }

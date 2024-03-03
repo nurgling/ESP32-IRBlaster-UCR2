@@ -9,7 +9,7 @@ extern "C" {
 
 #include <Arduino.h>
 
-void TaskSendIR(void *pvParameters);
+void TaskIR(void *pvParameters);
 
 #ifdef __cplusplus
 }

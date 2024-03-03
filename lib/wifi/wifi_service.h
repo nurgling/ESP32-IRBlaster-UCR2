@@ -5,9 +5,8 @@
 #ifndef WIFI_SERVICE_H
 #define WIFI_SERVICE_H
 
-//#include <Arduino.h>
+#include <Arduino.h>
 #include <WiFi.h>
-
 #include <libconfig.h>
 
 #define MAX_WIFI_CONNECTION_TRIES 3
