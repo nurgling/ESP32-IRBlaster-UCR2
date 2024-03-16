@@ -72,7 +72,7 @@ private:
     const int m_defaultLedBrightness = 75;
 
     const String hwrevision = "0.1";
-    const String fwversion = "0.1.0";
+    const String fwversion = "0.10.0"; //required version higher than 0.3 to allow discovery after update
     const String devicemodel = "KoeBlaster";
 
 };

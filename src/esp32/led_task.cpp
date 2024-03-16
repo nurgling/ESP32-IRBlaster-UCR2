@@ -129,10 +129,9 @@ void setLedStateIdentify()
     triggerState = identify;
 }
 
-void TaskLed(void *pvParameters)
-{
-    ESP_LOGD(TAG, "TaskLed running on core %d", xPortGetCoreID());
 
+void setupLedOutput()
+{
     pinMode(BLASTER_PIN_INDICATOR, OUTPUT);
     const int ledChannel = 0;
 
@@ -144,6 +143,21 @@ void TaskLed(void *pvParameters)
     current_pwm = 0;
     ledcWrite(0, current_pwm);
     l_state = off;
+}
+
+
+
+
+
+
+
+
+// TODO: rework using led lib to support rgb leds (remark to myself: check out ledwriter)!
+void TaskLed(void *pvParameters)
+{
+    ESP_LOGD(TAG, "TaskLed running on core %d", xPortGetCoreID());
+
+    setupLedOutput();
 
     int i = 0;
     for (;;)

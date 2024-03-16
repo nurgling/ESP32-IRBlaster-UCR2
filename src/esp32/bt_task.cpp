@@ -13,7 +13,7 @@ static const char *TAG = "bttask";
 
 void TaskBT(void *pvParameters)
 {
-    ESP_LOGD(TAG, "TaskBT running on core %d\n", xPortGetCoreID());
+    ESP_LOGD(TAG, "TaskBT running on core %d", xPortGetCoreID());
 
     BluetoothService *btService = new BluetoothService();
 
