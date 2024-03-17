@@ -21,6 +21,7 @@ public:
     }
 
     void connect();
+    void disconnect();
     void loop();
     boolean isActive() {return (WiFi.getMode() == WIFI_STA);}
     void updateMillis() {previousMillis = millis();}

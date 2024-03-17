@@ -50,6 +50,16 @@ void WifiService::loop(){
 }
 
 
+void WifiService::disconnect(){
+    ESP_LOGD(TAG, "Gotten request to stop Wifi radio.");
+    if(WiFi.isConnected()){
+        WiFi.disconnect();
+    }
+    WiFi.mode(WIFI_OFF);
+    ESP_LOGI(TAG, "Wifi radio is turned off.");
+}
+
+
 void WifiService::connect(){
 
    Config &config = Config::getInstance();

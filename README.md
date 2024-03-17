@@ -18,13 +18,35 @@ multi-room setups.
 ## Getting Started
 
 1. Add your specific board to ``platformio.ini``. Feel free to contribute this back as a pull-request. 
-1. Modify pin mappings, if required in ``lib/config/blaster_config.h``.
-1. For enabling the *learning of IR codes* you have to add ``-DBLASTER_ENABLE_IR_LEARN=true`` to the build_flags of your used Platform.io env.
-1. IR learning is still under development
+1. Modify pin mappings, if required in ``lib/config/blaster_config.h`` or by setting `-D defines` in ``build_flags`` respectively (see section [Customizing Pinout/Configuration](#customizing-pinout-configuration)).
+1. For enabling the *learning of IR codes* you have to add ``-DBLASTER_ENABLE_IR_LEARN=true`` to the build_flags of your used Platform.io env and check if the assigned GPIO pin is right.
+1. IR learning is still under development and tested only with some basic IR codes
+
+## Customizing Pinout/Configuration 
+
+The following defines are available in ``lib/config/blaster_config.h`` and can be overwritten by setting ``build_flags`` in ``platformio.ini``.
+
+| Define | Description | Options |
+|:-------|:------------|:--------|
+|`BLASTER_INDICATOR_MODE` | Defines the type of indicator led used for custom dock | `INDICATOR_OFF` no indicator led available<br/>`INDICATOR_LED` single color led (__default__)<br/>`INDICATOR_RGB` not yet implemented |
+|`BLASTER_PIN_INDICATOR` | Defines GPIO pin where indicator led is connected to  | Default: `5`<br/>Has no effect if `BLASTER_INDICATOR_MODE=INDICATOR_OFF` |
+|`BLASTER_ENABLE_IR_INTERNAL` | Enables/Disables internal IR channel of dock | `true` channel is enabled (__default__)<br/> `false` channel is disabled |
+|`BLASTER_PIN_IR_INTERNAL` | Defines GPIO pin of internal IR channel | Default: `12`<br/>Has no effect if `BLASTER_ENABLE_IR_INTERNAL=false` |
+|`BLASTER_ENABLE_IR_OUT_1` | Enables/Disables external IR channel 1 of dock | `true` channel is enabled (__default__)<br/> `false` channel is disabled |
+|`BLASTER_PIN_IR_OUT_1` | Defines GPIO pin of external IR channel 1 | Default: `13`<br/>Has no effect if `BLASTER_ENABLE_IR_OUT_1=false` |
+|`BLASTER_ENABLE_IR_OUT_2` | Enables/Disables external IR channel 2 of dock | `true` channel is enabled (__default__)<br/> `false` channel is disabled |
+|`BLASTER_PIN_IR_OUT_2` | Defines GPIO pin of external IR channel 2 | Default: `14`<br/>Has no effect if `BLASTER_ENABLE_IR_OUT_2=false` |
+|`BLASTER_ENABLE_IR_LEARN` | Enables/Disables learning of IR codes by an IR receiver | `true` learning is enabled<br/> `false` learning is disabled  (__default__)|
+|`BLASTER_PIN_IR_LEARN` | Defines GPIO pin IR receiver is connected to | Default: `16`<br/>Has no effect if `BLASTER_ENABLE_IR_LEARN=false` |
+|`BLASTER_ENABLE_ETH` | Enables/Disables an wired Ethernet interface<br/>Currently only Olimex Boards supported. | `true` Ethernet interface available. Requires definition of `OLIMEX_ESP`<br/> `false` Ethernet interface not available  (__default__)|
+|`OLIMEX_ESP` | Defines ESP32 package used in Olimex POE Board<br/>Impacts the pins for ethernet interface | `WROOM` tested and confirmed working<br/>`WROVER` untested ⚠️, therefore breaks build on purpose. Adaption in `eth_service.cpp` required!<br/>Has no effect if `BLASTER_ENABLE_ETH=false` |
+
+
+
 
 ## Electronics
 
-At least one IR led + transistors and resistors is required for this to operate.
+At least one IR led + transistors and resistors is required for this to operate correctly.
 IR learning was tested with an CHQ1838 Infrared receiver module.
 
 Schematic (⚠️ needs update for IR learning!):
@@ -38,8 +60,8 @@ In the remote web interface:
 1. Select *Integrations & docks*
 1. Under *Docks* click *+*
 1. Click on *Discover Docks*
-1. Dock should be recognized either via Bluetooth or via WiFi
-1. If Bluetooth, you have to specify Wifi settings.
+1. Dock should be recognized either via Bluetooth or via WiFi/Ethernet
+1. If recognized via Bluetooth, you have to mandatorily specify Wifi settings during adoption process.
 1. Click *Next*
 1. The blaster should be added as a new dock. If there were issues, then download the recent log files in
 *Settings* / *Development* / *Logs*. There should be a reason for any failures logged by the remote.

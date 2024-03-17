@@ -42,9 +42,16 @@ bool repeatCallback()
 void irSetup()
 {
     ESP_LOGD(TAG, "Setting up Pins for IR Sending");
+
+#if BLASTER_ENABLE_IR_INTERNAL == true
     pinMode(BLASTER_PIN_IR_INTERNAL, OUTPUT);
+#endif
+#if BLASTER_ENABLE_IR_OUT_1 == true
     pinMode(BLASTER_PIN_IR_OUT_1, OUTPUT);
+#endif
+#if BLASTER_ENABLE_IR_OUT_2 == true
     pinMode(BLASTER_PIN_IR_OUT_2, OUTPUT);
+#endif
 
 #if BLASTER_ENABLE_IR_LEARN == true
     ESP_LOGD(TAG, "Setting up Pin for IR Lerning");
@@ -142,16 +149,62 @@ void TaskIR(void *pvParameters)
                 {
                     // pin indicator was removed from the ir mask.
                     // TODO: trigger some short flashing once a ir command is sent.
-                    uint32_t ir_pin_mask = message.ir_internal << BLASTER_PIN_IR_INTERNAL | message.ir_ext1 << BLASTER_PIN_IR_OUT_1 | message.ir_ext2 << BLASTER_PIN_IR_OUT_2;
-                    irsend.setPinMask(ir_pin_mask);
-                    switch (message.format)
+                    uint32_t ir_pin_mask = 0;
+                    if(message.ir_internal)
                     {
-                    case pronto:
-                        sendProntoCode(message);
-                        break;
-                    case hex:
-                        sendHexCode(message);
-                        break;
+                        if(BLASTER_ENABLE_IR_INTERNAL == true)
+                        {
+                            ir_pin_mask |= message.ir_internal << BLASTER_PIN_IR_INTERNAL;    
+                        }
+                        else
+                        {
+                            ESP_LOGD(TAG, "Internal IR channel requested but not available in dock configuration");
+                        }
+                    }
+                    if(message.ir_ext1)
+                    {
+                        if(BLASTER_ENABLE_IR_OUT_1 == true)
+                        {
+                            ir_pin_mask |= message.ir_ext1 << BLASTER_PIN_IR_OUT_1;    
+                        }
+                        else
+                        {
+                            ESP_LOGD(TAG, "External IR channel 1 requested but not available in dock configuration");
+                        }
+                    }
+                    if(message.ir_ext2)
+                    {
+                        if(BLASTER_ENABLE_IR_OUT_2 == true)
+                        {
+                            ir_pin_mask |= message.ir_ext2 << BLASTER_PIN_IR_OUT_2;
+                        }
+                        else
+                        {
+                            ESP_LOGD(TAG, "External IR channel 2 requested but not available in dock configuration");
+                        }
+                    }
+
+                    // TODO: do we need to report back, if we are not sending the command?
+                    // at least log a warning!
+                    if (ir_pin_mask == 0)
+                    {
+                        ESP_LOGE(TAG, "IR command could not be sent. All IR channels requested for sending are not available in the dock configuration");
+                        ESP_LOGD(TAG, "Requested channels: internal=%s, out_1=%s, out_2=%s", message.ir_internal?"true ":"false", message.ir_ext1?"true ":"false", message.ir_ext2?"true ":"false");
+                        ESP_LOGD(TAG, "Available channels: internal=%s, out_1=%s, out_2=%s", BLASTER_ENABLE_IR_INTERNAL?"true ":"false", BLASTER_ENABLE_IR_OUT_1?"true ":"false", BLASTER_ENABLE_IR_OUT_2?"true ":"false");
+                    }
+                    else
+                    {
+                        irsend.setPinMask(ir_pin_mask);
+
+                        switch (message.format)
+                        {
+                        case pronto:
+                            sendProntoCode(message);
+                            break;
+                        case hex:
+                            sendHexCode(message);
+                            break;
+                        }
                     }
                     break;
                 }

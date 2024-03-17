@@ -19,6 +19,9 @@
 #include <ir_message.h>
 #include <ir_queue.h>
 
+#include <eth_service.h>
+
+
 #include <esp_log.h>
 
 static const char *TAG = "main";
@@ -27,18 +30,23 @@ QueueHandle_t irQueueHandle;
 
 void setup()
 {
+    BaseType_t taskCreate;
+
     Serial.begin(115200);
 
     esp_log_level_set("*", ESP_LOG_INFO);
 
     Config &config = Config::getInstance();
     WifiService &wifiSrv = WifiService::getInstance();
-
     wifiSrv.connect();
 
-    // Task for controlling the LED is always required
+    EthService &ethSrv = EthService::getInstance();
+    ethSrv.connect();
+
+
+// Task for controlling the LED is only required if indicator led is available
+#if BLASTER_INDICATOR_MODE != INDICATOR_OFF
     TaskHandle_t *ledTaskHandle = NULL;
-    BaseType_t taskCreate;
     taskCreate = xTaskCreatePinnedToCore(
         TaskLed, "Task Led Control",
         8192, NULL, 2, ledTaskHandle, 0);
@@ -48,7 +56,29 @@ void setup()
         ESP_LOGE(TAG, "Creation of led task failed. Returnvalue: %d.\n", taskCreate);
     }
 
-    if (wifiSrv.isActive())
+#endif
+
+
+
+    if (!wifiSrv.isActive() && !ethSrv.isActive()){
+        //waiting 5 secs for eth or wifi to get ready
+        int MAX_NETWORK_WAIT = 10;
+        for(int i = 0; i < MAX_NETWORK_WAIT; ++i){
+            ESP_LOGD(TAG, "Waiting for network connection %d/%ds ...", i+1, MAX_NETWORK_WAIT);
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            if (wifiSrv.isActive() || ethSrv.isActive())
+            {
+                //we are connected.
+                ESP_LOGI(TAG, "Network connection established!");
+                break;
+            }
+        }    
+    }
+
+
+
+
+    if (wifiSrv.isActive() || ethSrv.isActive())
     {
 
         // Create the queue which will have <QueueElementSize> number of elements, each of size `message_t` and pass the address to <QueueHandle>.
