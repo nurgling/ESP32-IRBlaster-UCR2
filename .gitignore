@@ -3,3 +3,6 @@
 .idea
 include/secrets.h
 kicad/*backup*/*.zip
+kicad/KoeBlaster/KoeBlaster-backups/*
+kicad/KoeBlaster/~KoeBlaster.kicad_pcb.lck
+kicad/KoeBlaster/~KoeBlaster.kicad_sch.lck

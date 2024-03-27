@@ -1,0 +1,21 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP NE555DR
+D Single Precision Timer
+K
+F http://www.ti.com/lit/ds/symlink/ne555.pdf
+$ENDCMP
+#
+$CMP B3U-3000P-B
+D OMRON - B3U-3000P-B - TACTILE SWITCH, SIDE ACTUATED, SMD
+K
+F https://componentsearchengine.com/Datasheets/2/B3U-3000P-B.pdf
+$ENDCMP
+#
+$CMP 629105150521
+D USB - micro B USB 2.0 Receptacle Connector 5 Position Surface Mount, Right Angle; Through Hole
+K
+F https://www.we-online.com/components/products/datasheet/629105150521.pdf
+$ENDCMP
+#
+#End Doc Library

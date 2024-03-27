@@ -44,14 +44,43 @@ The following defines are available in ``lib/config/blaster_config.h`` and can b
 
 
 
-## Electronics
+# Electronics
+
+## KoeBlaster Hardware
+
+KoeBlaster is designed to be a drop-in replacement of the Logitech Harmony Hub PCB working with Remote Two.
+
+⚠️ Schematic is currently under review. Comments are apreciated!
+PCB is not yet manufactured.
+
+### Schematic
+
+![Serving suggestion](https://github.com/itcorner/ESP32-IRBlaster-UCR2/blob/main/kicad/KoeBlaster/exports/schematic_v0.1.png?raw=true)
+
+### Board
+
+#### Top
+
+![Serving suggestion](https://github.com/itcorner/ESP32-IRBlaster-UCR2/blob/main/kicad/KoeBlaster/exports/KoeBlaster-brd_top_elements.svg?raw=true)
+
+![Serving suggestion](https://github.com/itcorner/ESP32-IRBlaster-UCR2/blob/main/kicad/KoeBlaster/exports/KoeBlaster-brd_top.svg?raw=true)
+
+#### Bottom
+
+![Serving suggestion](https://github.com/itcorner/ESP32-IRBlaster-UCR2/blob/main/kicad/KoeBlaster/exports/KoeBlaster-brd_bottom_elements.svg?raw=true)
+
+![Serving suggestion](https://github.com/itcorner/ESP32-IRBlaster-UCR2/blob/main/kicad/KoeBlaster/exports/KoeBlaster-brd_bottom.svg?raw=true)
+
+
+
+## DIY Breadboard Example
 
 At least one IR led + transistors and resistors is required for this to operate correctly.
 IR learning was tested with an CHQ1838 Infrared receiver module.
 
 Schematic (⚠️ needs update for IR learning!):
 
-![Serving suggestion](https://github.com/petchmakes/ESP32-IRBlaster-UCR2/blob/main/kicad/schematic.png?raw=true)
+![Serving suggestion](https://github.com/itcorner/ESP32-IRBlaster-UCR2/blob/main/kicad/schematic.png?raw=true)
 
 # Integrating with the remote
 

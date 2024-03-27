@@ -1,0 +1,6 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "koeblaster_devices")(type "KiCad")(uri "${KIPRJMOD}/koeblaster_devices.kicad_sym")(options "")(descr ""))
+  (lib (name "SamacSys_Parts")(type "KiCad")(uri "${KIPRJMOD}/KiCAD_Libs/SamacSys_Parts.kicad_sym")(options "")(descr ""))
+  (lib (name "B3U-3000P-B")(type "KiCad")(uri "${KIPRJMOD}/KiCAD_Libs/B3U-3000P-B/KiCad/B3U-3000P-B.kicad_sym")(options "")(descr ""))
+)
