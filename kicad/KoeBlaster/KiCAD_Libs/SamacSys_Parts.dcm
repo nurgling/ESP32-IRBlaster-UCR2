@@ -18,4 +18,34 @@ K
 F https://www.we-online.com/components/products/datasheet/629105150521.pdf
 $ENDCMP
 #
+$CMP NXV75UPR
+D MOSFET MOS DISCRETES
+K
+F https://assets.nexperia.com/documents/data-sheet/NXV75UP.pdf
+$ENDCMP
+#
+$CMP SQ2310CES-T1_GE3
+D Automotive N-Channel 20 V (D-S) 175 C MOSFET
+K
+F https://www.vishay.com/docs/62145/sq2310ces.pdf
+$ENDCMP
+#
+$CMP BC817DSF
+D Bipolar Transistors - BJT NPN general purpose double transistor
+K
+F https://assets.nexperia.com/documents/data-sheet/BC817DS.pdf
+$ENDCMP
+#
+$CMP SJ1-42534-SMT-TR
+D Phone Connectors Audio Jacks
+K
+F https://datasheet.datasheetarchive.com/originals/distributors/Datasheets-DGA1/151923.pdf
+$ENDCMP
+#
+$CMP 74LVC2G14GV,125
+D 74LVC2G14 - Dual inverting Schmitt trigger with 5 V tolerant input@en-us
+K
+F https://assets.nexperia.com/documents/data-sheet/74LVC2G14.pdf
+$ENDCMP
+#
 #End Doc Library

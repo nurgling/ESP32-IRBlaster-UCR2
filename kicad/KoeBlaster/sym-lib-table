@@ -3,4 +3,5 @@
   (lib (name "koeblaster_devices")(type "KiCad")(uri "${KIPRJMOD}/koeblaster_devices.kicad_sym")(options "")(descr ""))
   (lib (name "SamacSys_Parts")(type "KiCad")(uri "${KIPRJMOD}/KiCAD_Libs/SamacSys_Parts.kicad_sym")(options "")(descr ""))
   (lib (name "B3U-3000P-B")(type "KiCad")(uri "${KIPRJMOD}/KiCAD_Libs/B3U-3000P-B/KiCad/B3U-3000P-B.kicad_sym")(options "")(descr ""))
+  (lib (name "SJ2-25103A-SMT-TR")(type "Legacy")(uri "${KIPRJMOD}/KiCAD_Libs/SJ2-25103A-SMT-TR/SJ2-25103A-SMT-TR.lib")(options "")(descr ""))
 )
