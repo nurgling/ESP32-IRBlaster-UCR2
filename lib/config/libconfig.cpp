@@ -22,10 +22,15 @@ static const char * TAG = "config";
 Config::Config()
 {
     // if no LED brightness setting, set default
-    if (getLedBrightness() == 0)
+    if (getLedBrightness() == -1)
     {
-        ESP_LOGD(TAG, "Setting default brightness");
+        ESP_LOGD(TAG, "Setting default brightness for indicator led");
         setLedBrightness(m_defaultLedBrightness);
+    }
+    if (getEthBrightness() == -1)
+    {
+        ESP_LOGD(TAG, "Setting default brightness for ethernet led");
+        setEthBrightness(m_defaultLedBrightness);
     }
 
     // if no friendly name is set, set mac address
@@ -37,11 +42,11 @@ Config::Config()
     }
 }
 
-// getter and setter for brightness value
+// getter and setter for led brightness value
 int Config::getLedBrightness()
 {
     m_preferences.begin("general", false);
-    int led_brightness = m_preferences.getInt("brightness", 0);
+    int led_brightness = m_preferences.getInt("ledbrightness", -1);
     m_preferences.end();
 
     return led_brightness;
@@ -50,9 +55,28 @@ int Config::getLedBrightness()
 void Config::setLedBrightness(int value)
 {
     m_preferences.begin("general", false);
-    m_preferences.putInt("brightness", value);
+    m_preferences.putInt("ledbrightness", value);
     m_preferences.end();
 }
+
+// getter and setter for ethernet led brightness value
+int Config::getEthBrightness()
+{
+    m_preferences.begin("general", false);
+    int led_brightness = m_preferences.getInt("ethbrightness", -1);
+    m_preferences.end();
+
+    return led_brightness;
+}
+
+void Config::setEthBrightness(int value)
+{
+    m_preferences.begin("general", false);
+    m_preferences.putInt("ethbrightness", value);
+    m_preferences.end();
+}
+
+
 
 // getter and setter for dock friendly name
 String Config::getFriendlyName()

@@ -7,6 +7,9 @@
 
 #include <ir_service.h>
 
+#include <eth_service.h>
+#include <wifi_service.h>
+
 #include <mdns_service.h>
 #include <libconfig.h>
 
@@ -49,6 +52,13 @@ void api_buildSysinfoResponse(JsonDocument &input, JsonDocument &output)
     output["version"] = Config::getInstance().getFWVersion();
     output["serial"] = Config::getInstance().getSerial();
     output["ir_learning"] = Config::getInstance().getIRLearning();
+    output["ethernet"] = EthService::getInstance().isActive();
+    output["wifi"] = WifiService::getInstance().isActive();
+    if(WifiService::getInstance().isActive()){
+        output["ssid"] = WifiService::getInstance().getSSID();
+    }
+    output["led_brightness"] = Config::getInstance().getLedBrightness();
+    output["eth_led_brightness"] = Config::getInstance().getEthBrightness();
 }
 
 void processSetConfig(JsonDocument &input, JsonDocument &output)
@@ -194,6 +204,22 @@ void processIROffMessage(JsonDocument &request, JsonDocument &response)
     learnIRStop(request, response);
 }
 
+
+void processSetBrightness(JsonDocument &request, JsonDocument &response)
+{
+    if (request.containsKey("status_led"))
+    {
+        int brightness = request["status_led"].as<int>();
+        Config::getInstance().setLedBrightness(brightness);
+    }
+    if (request.containsKey("eth_led"))
+    {
+        int brightness = request["eth_led"].as<int>();
+        Config::getInstance().setEthBrightness(brightness);
+    }
+}
+
+
 // TODO: implement a nicer solution later than crossreferencing a function
 extern void setLedStateIdentify();
 
@@ -272,8 +298,9 @@ void processDockMessage(JsonDocument &request, JsonDocument &response, AsyncWebS
     }
     else if (command == "set_brightness")
     {
-        // DO NOTHING BUT REPLY (for now)
+        // set and store new brightness values
         api_fillDefaultResponseFields(request, response);
+        processSetBrightness(request, response);
     }
     else if (command == "set_logging")
     {

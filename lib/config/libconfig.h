@@ -25,10 +25,15 @@ public:
         return instance;
     }
 
-    // getter and setter for brightness value
-    // int between 10 and 100
+    // getter and setter for indicator led brightness value
+    // int between 0 and 100
     int getLedBrightness();
     void setLedBrightness(int value);
+
+    // getter and setter for eth led brightness value
+    // int between 0 and 100
+    int getEthBrightness();
+    void setEthBrightness(int value);
 
     // getter and setter for dock friendly name
     String getFriendlyName();

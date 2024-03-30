@@ -52,6 +52,16 @@
 #endif
 #endif
 
+#ifndef BLASTER_ENABLE_RESETBTN
+#define BLASTER_ENABLE_RESETBTN false
+#endif
+
+#if BLASTER_ENABLE_RESETBTN == true
+#ifndef BLASTER_PIN_RESETBTN
+#define BLASTER_PIN_RESETBTN 23
+#endif
+#endif
+
 #ifndef BLASTER_ENABLE_ETH
 #define BLASTER_ENABLE_ETH false
 #endif
