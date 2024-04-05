@@ -16,13 +16,6 @@ void TaskLed(void *pvParameters);
 #define INDICATOR_LED 1
 #define INDICATOR_PIXEL 2
 
-#ifdef BLASTER_INDICATOR_MODE
-#if BLASTER_INDICATOR_MODE == INDICATOR_PIXEL
-#warning Using RGB Pixel led as indicator is currently not supported. Disabling indicator led!
-#undef BLASTER_INDICATOR_MODE
-#define BLASTER_INDICATOR_MODE INDICATOR_OFF
-#endif
-#endif
 
 
 

@@ -113,6 +113,13 @@ bool receiveIRState = false;
 // TODO: this definitely needs to be done nicer
 extern AsyncWebSocketClient *learningClient;
 
+// TODO: implement a nicer solution later than crossreferencing a function
+extern void setLedStateLearn();
+extern void setLedStateNormal();
+
+
+
+
 void TaskIR(void *pvParameters)
 {
     ESP_LOGD(TAG, "TaskIR running on core %d", xPortGetCoreID());
@@ -133,6 +140,7 @@ void TaskIR(void *pvParameters)
                 api_buildIRCodeEvent(eventMsg, code);
                 api_sendJsonReply(eventMsg, learningClient);
                 receiveIRState = false;
+                setLedStateNormal();
             }
         }
 #endif
@@ -217,12 +225,14 @@ void TaskIR(void *pvParameters)
                 {
                     receiveIRState = true;
                     ESP_LOGI(TAG, "Starting IR learning");
+                    setLedStateLearn();
                     break;
                 }
                 case learn_stop:
                 {
                     receiveIRState = false;
                     ESP_LOGI(TAG, "Stopping IR learning");
+                    setLedStateNormal();
                     break;
                 }
                 case stop:

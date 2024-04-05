@@ -28,7 +28,7 @@ The following defines are available in ``lib/config/blaster_config.h`` and can b
 
 | Define | Description | Options |
 |:-------|:------------|:--------|
-|`BLASTER_INDICATOR_MODE` | Defines the type of indicator led used for custom dock | `INDICATOR_OFF` no indicator led available<br/>`INDICATOR_LED` single color led (__default__)<br/>`INDICATOR_RGB` not yet implemented |
+|`BLASTER_INDICATOR_MODE` | Defines the type of indicator led used for custom dock | `INDICATOR_OFF` no indicator led available<br/>`INDICATOR_LED` single color led (__default__)<br/>`INDICATOR_PIXEL` digital RGB neopixel led |
 |`BLASTER_PIN_INDICATOR` | Defines GPIO pin where indicator led is connected to  | Default: `5`<br/>Has no effect if `BLASTER_INDICATOR_MODE=INDICATOR_OFF` |
 |`BLASTER_ENABLE_IR_INTERNAL` | Enables/Disables internal IR channel of dock | `true` channel is enabled (__default__)<br/> `false` channel is disabled |
 |`BLASTER_PIN_IR_INTERNAL` | Defines GPIO pin of internal IR channel | Default: `12`<br/>Has no effect if `BLASTER_ENABLE_IR_INTERNAL=false` |

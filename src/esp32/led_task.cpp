@@ -6,11 +6,20 @@
 #include <freertos/FreeRTOS.h>
 
 #include <blaster_config.h>
+#include <libconfig.h>
 
 #include <esp_log.h>
 
+#define FASTLED_RMT_MAX_CHANNELS 1
+#include <FastLED.h>
+
+// for pixel led
+#define NUM_LEDS 1
+CRGB leds[NUM_LEDS];
+// for pwm led
+const int ledChannel = 0;
+
 static const char *TAG = "ledtask";
-// #include <bt_service.h>
 
 // normal: breath (white)
 
@@ -29,85 +38,116 @@ enum ledState
     off,
     identify,
     normal,
+    learn,
     none,
 };
 
 ledState l_state = off;
 ledState triggerState = none;
-uint MAXPRC = 80;
 
-uint current_pwm = 0;
+// current led color value
+CHSV current_color = CHSV(0, 0, 0);
 
-uint goal_pwm = 0;
+// update interval of indicator led in ms
+#define UPDATERATE_MS 10
 
-#define UPDATERATE_MS 20
-#define MINSTEP 10
-
+// resolution of single color pwm output
 #define RESOLUTION 10
 
-uint prc2pwm(uint prc)
+// converts percentage value (0-100) to 8 bit value (0-255)
+uint8_t prc2value8(uint8_t prc)
 {
-    return (prc * ((1 << RESOLUTION) - 1) / 100);
+    return (prc * 255 / 100);
 }
 
-uint calcNextPwmVal(uint current, uint target, uint duration_ms)
+uint8_t scalebrightness(uint8_t val)
 {
-    int diff = target - current;
-    if (diff == 0)
+    return ((val * Config::getInstance().getLedBrightness()) / 100);
+}
+
+uint16_t scalebrightness2pwm(uint8_t val)
+{
+    return (map(val, 0, 255, 0, ((1 << RESOLUTION) - 1)));
+}
+uint16_t scaleprc2pwm(uint8_t prc)
+{
+    return (map(prc, 0, 100, 0, ((1 << RESOLUTION) - 1)));
+}
+
+void transferColor(CHSV start, CHSV goal, uint32_t duration_ms = 500)
+{
+    uint32_t numsteps = duration_ms / UPDATERATE_MS;
+
+    if (numsteps > 1)
     {
-        // target reached. do nothing
-        return target;
-    }
+        // perform intermediate steps towards goal
+        for (uint32_t i = 0; i < numsteps; ++i)
+        {
+            long hue = map(i, 0, numsteps, start.hue, goal.hue); // Map hue based on current step
+            long sat = map(i, 0, numsteps, start.sat, goal.sat); // Map sat based on current step
+            long val = map(i, 0, numsteps, start.val, goal.val); // Map val based on current step
 
-    int absdiff = abs(diff);
-    int sign = diff / abs(diff);
+            // save only the undimmed values for transition calculation
+            current_color = CHSV(hue, sat, val);
 
-    float numstep = (float)duration_ms / (float)UPDATERATE_MS;
-    float stepsize = (float)absdiff / numstep;
-    int stepsize_i = (int)round(stepsize);
+            // output the dimmed values
+            CHSV out = CHSV(hue, sat, scalebrightness(val));
 
-    if (absdiff <= MINSTEP)
-    {
-        // we are close enough to directly jump to the target
-        return target;
+            // ESP_LOGD(TAG, "Led Val: %d", out.val);
+
+#if (BLASTER_INDICATOR_MODE == INDICATOR_LED)
+            // output single color led
+            ledcWrite(ledChannel, scalebrightness2pwm(out.val));
+#elif (BLASTER_INDICATOR_MODE == INDICATOR_PIXEL)
+            // output neopixel
+            FastLED.showColor(out);
+#else
+            ESP_LOGE(TAG, "Unsupported BLASTER_INDICATOR_MODE (%d)!", BLASTER_INDICATOR_MODE);
+#endif
+
+            // delay
+            vTaskDelay(UPDATERATE_MS / portTICK_PERIOD_MS);
+        }
     }
-    if (stepsize_i <= MINSTEP)
-    {
-        // ramp is too slow, make at least minstep
-        return (current + sign * MINSTEP);
-    }
-    // make normal step
-    return (current + sign * stepsize_i);
+    // perform last step to the final goal
+    current_color = goal;
+    // output the dimmed values
+    CHSV out = CHSV(current_color.hue, current_color.sat, scalebrightness(current_color.val));
+
+#if (BLASTER_INDICATOR_MODE == INDICATOR_LED)
+    // output single color led
+    ledcWrite(ledChannel, scalebrightness2pwm(out.val));
+#elif (BLASTER_INDICATOR_MODE == INDICATOR_PIXEL)
+    // output neopixel
+    FastLED.showColor(out);
+#else
+    ESP_LOGE(TAG, "Unsupported BLASTER_INDICATOR_MODE (%d)!", BLASTER_INDICATOR_MODE);
+#endif
 }
 
-void transition(uint *cur_pwm, uint target_pwm, uint duration_ms)
+void set_led_off(uint32_t duration_ms = 50)
 {
-    uint remaining = duration_ms;
+    // transition(&current_pwm, 0, duration_ms, hue, sat);
 
-    while (*cur_pwm != target_pwm)
-    {
-        *cur_pwm = calcNextPwmVal(*cur_pwm, target_pwm, remaining);
-        // output current pwm
-        ledcWrite(0, *cur_pwm);
-
-        remaining = remaining - UPDATERATE_MS;
-        vTaskDelay(UPDATERATE_MS / portTICK_PERIOD_MS);
-    }
+    CHSV g = CHSV(current_color.hue, current_color.sat, 0);
+    ESP_LOGD(TAG, "LedOFF: {%d,%d,%d}->{%d,%d,%d} [%d ms]", current_color.h, current_color.s, current_color.v, g.h, g.s, g.v, duration_ms);
+    transferColor(current_color, g, duration_ms);
 }
 
-void set_led_off(uint duration_ms = 50)
+void set_led_on(uint32_t duration_ms = 50, uint8_t hue = 0, uint8_t sat = 0)
 {
-    transition(&current_pwm, 0, duration_ms);
+    uint8_t goalval = prc2value8(100);
+    CHSV g = CHSV(hue, sat, goalval);
+    CHSV s = CHSV(hue, sat, 0);
+    // transition(&current_pwm, onpwm, duration_ms, hue, sat);
+    ESP_LOGD(TAG, "LedON: {%d,%d,%d}->{%d,%d,%d} [%d ms]", s.h, s.s, s.v, g.h, g.s, g.v, duration_ms);
+    transferColor(s, g, duration_ms);
 }
-void set_led_on(uint duration_ms = 50)
+
+void breath_once(uint32_t dur_ms = 6000, uint8_t hue = 0, uint8_t sat = 0)
 {
-    uint onpwm = prc2pwm(MAXPRC);
-    transition(&current_pwm, onpwm, duration_ms);
-}
-void breath_once(uint duration_ms = 6000)
-{
-    set_led_on(duration_ms / 2);
-    set_led_off(duration_ms / 2);
+    set_led_on(dur_ms / 2, hue, sat);
+    set_led_off(dur_ms / 2);
 }
 
 void setPWMState(ledState nextState)
@@ -128,29 +168,36 @@ void setLedStateIdentify()
 {
     triggerState = identify;
 }
-
+void setLedStateLearn()
+{
+    triggerState = learn;
+}
+void setLedStateNormal()
+{
+    triggerState = normal;
+}
 
 void setupLedOutput()
 {
     pinMode(BLASTER_PIN_INDICATOR, OUTPUT);
-    const int ledChannel = 0;
 
+#if BLASTER_INDICATOR_MODE == INDICATOR_LED
     // configure LED PWM functionalitites
     ledcSetup(ledChannel, 5000, RESOLUTION);
-
     // attach the channel to the GPIO2 to be controlled
     ledcAttachPin(BLASTER_PIN_INDICATOR, ledChannel);
-    current_pwm = 0;
-    ledcWrite(0, current_pwm);
-    l_state = off;
+    // turn off led
+    ledcWrite(ledChannel, 0);
+#elif BLASTER_INDICATOR_MODE == INDICATOR_PIXEL
+    // setup pixel led
+    FastLED.addLeds<WS2812B, BLASTER_PIN_INDICATOR, RGB>(leds, NUM_LEDS);
+    FastLED.clear(true);
+#else
+    ESP_LOGE(TAG, "Unsupported BLASTER_INDICATOR_MODE (%d)!", BLASTER_INDICATOR_MODE);
+#endif
+
+    l_state = normal;
 }
-
-
-
-
-
-
-
 
 // TODO: rework using led lib to support rgb leds (remark to myself: check out ledwriter)!
 void TaskLed(void *pvParameters)
@@ -160,6 +207,13 @@ void TaskLed(void *pvParameters)
     setupLedOutput();
 
     int i = 0;
+    unsigned long lastMillis = 0;
+    unsigned long currentMillis = 0;
+
+    const uint pause_off = 20;
+    const uint pause_on = 20;
+    const uint transfer_time = 100;
+
     for (;;)
     {
         if (triggerState != none)
@@ -170,22 +224,50 @@ void TaskLed(void *pvParameters)
         switch (l_state)
         {
         case normal:
-            // breath_once();
+            currentMillis = millis();
+            if (currentMillis > lastMillis + 10000)
+            {
+                lastMillis = currentMillis;
+
+                breath_once(3000, 0, 0); // breath white
+            }
             break;
+
         case identify:
+        {
             for (i = 0; i < 2; ++i)
             {
-                breath_once();
+                set_led_on(transfer_time, HSVHue::HUE_BLUE, 255);
+                vTaskDelay(pause_on / portTICK_PERIOD_MS);
+                set_led_off(transfer_time);
+                vTaskDelay(pause_off / portTICK_PERIOD_MS);
+                set_led_on(transfer_time, HSVHue::HUE_ORANGE, 255);
+                vTaskDelay(pause_on / portTICK_PERIOD_MS);
+                set_led_off(transfer_time);
+                vTaskDelay(pause_off / portTICK_PERIOD_MS);
+                set_led_on(transfer_time, HSVHue::HUE_GREEN, 255);
+                vTaskDelay(pause_on / portTICK_PERIOD_MS);
+                set_led_off(transfer_time);
+                vTaskDelay(pause_off / portTICK_PERIOD_MS);
+                set_led_on(transfer_time, HSVHue::HUE_RED, 255);
+                vTaskDelay(pause_on / portTICK_PERIOD_MS);
+                set_led_off(transfer_time);
             }
-            l_state = off;
-            break;
+            l_state = normal;
+        }
+        break;
+
+        case learn:
+        {
+            transferColor(current_color, CHSV(HSVHue::HUE_RED, 200, 255), transfer_time);
+        }
+        break;
 
         default:
             break;
         }
-
         // TODO: blink the led in the discovery pattern!
 
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        vTaskDelay(20 / portTICK_PERIOD_MS);
     }
 }

@@ -222,6 +222,10 @@ void processSetBrightness(JsonDocument &request, JsonDocument &response)
 
 // TODO: implement a nicer solution later than crossreferencing a function
 extern void setLedStateIdentify();
+extern void setLedStateLearn();
+extern void setLedStateNormal();
+
+
 
 void processDockMessage(JsonDocument &request, JsonDocument &response, AsyncWebSocketClient *wsClient)
 {
