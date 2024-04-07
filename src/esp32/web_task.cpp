@@ -9,12 +9,15 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
+#include <SPIFFS.h>
 
 #include <esp_log.h>
 
 #include <mdns_service.h>
 #include <api_service.h>
 #include <libconfig.h>
+
+#include <moustache.h>
 
 
 #define SOCKET_DATA_SIZE 4096
@@ -43,6 +46,98 @@ void debugWSMessage(const AwsFrameInfo *info, uint8_t *pay_data, size_t pay_len)
     ESP_LOGV(TAG, "  Length: %u", pay_len);
     ESP_LOGV(TAG, "  Data: %.*s", pay_len, pay_data);
 }
+
+String getHeap(){
+    uint32_t freeheap = esp_get_free_heap_size();
+    String heapstr = String(freeheap) + "bytes";
+    return(heapstr);
+}
+
+String getReset(){
+// typedef enum {
+//     ESP_RST_UNKNOWN,    //!< Reset reason can not be determined
+//     ESP_RST_POWERON,    //!< Reset due to power-on event
+//     ESP_RST_EXT,        //!< Reset by external pin (not applicable for ESP32)
+//     ESP_RST_SW,         //!< Software reset via esp_restart
+//     ESP_RST_PANIC,      //!< Software reset due to exception/panic
+//     ESP_RST_INT_WDT,    //!< Reset (software or hardware) due to interrupt watchdog
+//     ESP_RST_TASK_WDT,   //!< Reset due to task watchdog
+//     ESP_RST_WDT,        //!< Reset due to other watchdogs
+//     ESP_RST_DEEPSLEEP,  //!< Reset after exiting deep sleep mode
+//     ESP_RST_BROWNOUT,   //!< Brownout reset (software or hardware)
+//     ESP_RST_SDIO,       //!< Reset over SDIO
+// } esp_reset_reason_t;
+    esp_reset_reason_t r = esp_reset_reason();
+    String reason = "";
+    switch (r)
+    {
+    case ESP_RST_UNKNOWN:
+        reason = "Unknown";
+        break;
+    case ESP_RST_POWERON:
+        reason = "PowerOn";
+        break;
+    case ESP_RST_EXT:
+        reason = "External Reset";
+        break;        
+    case ESP_RST_SW:
+        reason = "Software Reset";
+        break;
+    case ESP_RST_PANIC:
+        reason = "Exception/Panic";
+        break;
+    case ESP_RST_INT_WDT:
+        reason = "Interrupt Watchdog";
+        break;
+    case ESP_RST_TASK_WDT:
+        reason = "Task Watchdog";
+        break;
+    case ESP_RST_WDT:
+        reason = "Watchdog";
+        break;
+    case ESP_RST_BROWNOUT:
+        reason = "Brownout";
+        break;
+    default:
+        reason = "other";
+        break;
+    }
+    return(reason);
+}
+
+String getIndex()
+{
+    String filecontent = "";
+    if(!SPIFFS.begin(true)){
+        ESP_LOGE(TAG, "An Error has occurred while mounting SPIFFS");
+        return "ERROR";
+    }
+    File file = SPIFFS.open("/index.html");
+    if(!file){
+        ESP_LOGE(TAG, "Failed to open file for reading");
+        return "ERROR";
+    }
+    while(file.available()){
+        filecontent += file.readString();
+    }
+    file.close();
+    SPIFFS.end();
+    
+    moustache_variable_t substitutions[] = {
+      {"friendlyname", Config::getInstance().getFriendlyName()},
+      {"hostname", Config::getInstance().getHostName()},
+      {"version", Config::getInstance().getFWVersion()},
+      {"serial", Config::getInstance().getSerial()},
+      {"model", Config::getInstance().getDeviceModel()},
+      {"revision", Config::getInstance().getHWRevision()},
+      {"heap", getHeap()},
+      {"uptime", "not implemented yet"},
+      {"resetreason", getReset()},
+    };
+    auto result = moustache_render(filecontent, substitutions);
+    return result;
+}
+
 
 void onWSEvent(AsyncWebSocket *server,
                AsyncWebSocketClient *client,
@@ -171,12 +266,24 @@ void TaskWeb(void *pvParameters)
     AsyncWebServer server(Config::getInstance().API_port);
     AsyncWebSocket ws("/");
 
+    AsyncWebServer httpserver(80);
+
+    httpserver.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->redirect("/index.html");
+    });
+    httpserver.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request){
+        String response = getIndex();
+        request->send(200, "text/html", response);
+    });
+
     // start websocket server.
     ws.onEvent(onWSEvent);
     server.addHandler(&ws);
     server.onNotFound(notFound);
+    httpserver.onNotFound(notFound);
 
     server.begin();
+    httpserver.begin();
 
     MDNSService::getInstance().startService();
 

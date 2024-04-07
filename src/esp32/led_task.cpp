@@ -39,6 +39,8 @@ enum ledState
     identify,
     normal,
     learn,
+    reset,
+    factoryreset,
     none,
 };
 
@@ -130,7 +132,7 @@ void set_led_off(uint32_t duration_ms = 50)
     // transition(&current_pwm, 0, duration_ms, hue, sat);
 
     CHSV g = CHSV(current_color.hue, current_color.sat, 0);
-    ESP_LOGD(TAG, "LedOFF: {%d,%d,%d}->{%d,%d,%d} [%d ms]", current_color.h, current_color.s, current_color.v, g.h, g.s, g.v, duration_ms);
+    //ESP_LOGD(TAG, "LedOFF: {%d,%d,%d}->{%d,%d,%d} [%d ms]", current_color.h, current_color.s, current_color.v, g.h, g.s, g.v, duration_ms);
     transferColor(current_color, g, duration_ms);
 }
 
@@ -140,7 +142,7 @@ void set_led_on(uint32_t duration_ms = 50, uint8_t hue = 0, uint8_t sat = 0)
     CHSV g = CHSV(hue, sat, goalval);
     CHSV s = CHSV(hue, sat, 0);
     // transition(&current_pwm, onpwm, duration_ms, hue, sat);
-    ESP_LOGD(TAG, "LedON: {%d,%d,%d}->{%d,%d,%d} [%d ms]", s.h, s.s, s.v, g.h, g.s, g.v, duration_ms);
+    //ESP_LOGD(TAG, "LedON: {%d,%d,%d}->{%d,%d,%d} [%d ms]", s.h, s.s, s.v, g.h, g.s, g.v, duration_ms);
     transferColor(s, g, duration_ms);
 }
 
@@ -176,6 +178,15 @@ void setLedStateNormal()
 {
     triggerState = normal;
 }
+void setLedStateReset()
+{
+    triggerState = reset;
+}
+void setLedStateFactoryReset()
+{
+    triggerState = factoryreset;
+}
+
 
 void setupLedOutput()
 {
@@ -190,7 +201,8 @@ void setupLedOutput()
     ledcWrite(ledChannel, 0);
 #elif BLASTER_INDICATOR_MODE == INDICATOR_PIXEL
     // setup pixel led
-    FastLED.addLeds<WS2812B, BLASTER_PIN_INDICATOR, RGB>(leds, NUM_LEDS);
+    //FastLED.addLeds<WS2812B, BLASTER_PIN_INDICATOR, RGB>(leds, NUM_LEDS);
+    FastLED.addLeds<WS2812B, BLASTER_PIN_INDICATOR, GRB>(leds, NUM_LEDS);
     FastLED.clear(true);
 #else
     ESP_LOGE(TAG, "Unsupported BLASTER_INDICATOR_MODE (%d)!", BLASTER_INDICATOR_MODE);
@@ -210,6 +222,7 @@ void TaskLed(void *pvParameters)
     unsigned long lastMillis = 0;
     unsigned long currentMillis = 0;
 
+    const uint task_idle_time = 20;
     const uint pause_off = 20;
     const uint pause_on = 20;
     const uint transfer_time = 100;
@@ -252,6 +265,7 @@ void TaskLed(void *pvParameters)
                 set_led_on(transfer_time, HSVHue::HUE_RED, 255);
                 vTaskDelay(pause_on / portTICK_PERIOD_MS);
                 set_led_off(transfer_time);
+                vTaskDelay(pause_off / portTICK_PERIOD_MS);
             }
             l_state = normal;
         }
@@ -263,11 +277,29 @@ void TaskLed(void *pvParameters)
         }
         break;
 
+        case reset:
+        {
+            transferColor(current_color, CHSV(HSVHue::HUE_BLUE, 200, 255), transfer_time);
+            vTaskDelay(200 / portTICK_PERIOD_MS);
+            set_led_off(transfer_time);
+            vTaskDelay((200 - task_idle_time) / portTICK_PERIOD_MS);
+        }
+        break;
+
+        case factoryreset:
+        {
+            transferColor(current_color, CHSV(HSVHue::HUE_RED, 200, 255), transfer_time);
+            vTaskDelay(50 / portTICK_PERIOD_MS);
+            set_led_off(transfer_time);
+            vTaskDelay((50 - task_idle_time) / portTICK_PERIOD_MS);
+        }
+        break;
+
         default:
             break;
         }
         // TODO: blink the led in the discovery pattern!
 
-        vTaskDelay(20 / portTICK_PERIOD_MS);
+        vTaskDelay(task_idle_time / portTICK_PERIOD_MS);
     }
 }

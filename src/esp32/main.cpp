@@ -20,6 +20,7 @@
 #include <ir_queue.h>
 
 #include <eth_service.h>
+#include <button_service.h>
 
 
 #include <esp_log.h>
@@ -42,6 +43,10 @@ void setup()
 
     EthService &ethSrv = EthService::getInstance();
     ethSrv.connect();
+
+    ButtonService &btnSrv = ButtonService::getInstance();
+    btnSrv.init();
+    
 
 
 // Task for controlling the LED is only required if indicator led is available
@@ -127,5 +132,6 @@ void setup()
 void loop()
 {
     WifiService::getInstance().loop();
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+    ButtonService::getInstance().loop();
+    vTaskDelay(20 / portTICK_PERIOD_MS);
 }
