@@ -19,15 +19,10 @@ static const long minFactoryReset = 5000;
 
 void ButtonService::init()
 {
-    if(BLASTER_ENABLE_RESETBTN == true){
+    #if BLASTER_ENABLE_RESETBTN == true 
         pinMode(BLASTER_PIN_RESETBTN, INPUT);
-        pininit_done = true;
         ESP_LOGD(TAG, "Reset button initialized.");
-    }
-    else
-    {
-        pininit_done = false;
-    }
+    #endif
 }
 
 //again not nice!
@@ -36,8 +31,7 @@ extern void setLedStateFactoryReset();
 
 void ButtonService::loop()
 {
-    if(pininit_done)
-    {
+    #if BLASTER_ENABLE_RESETBTN == true
         if(digitalRead(BLASTER_PIN_RESETBTN) == LOW)
         {
             cur_state = pressed;
@@ -100,5 +94,5 @@ void ButtonService::loop()
 
         }
         last_state = cur_state;
-    }
+    #endif
 }

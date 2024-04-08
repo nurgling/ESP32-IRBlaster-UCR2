@@ -31,7 +31,6 @@ private:
     explicit ButtonService() {}
     virtual ~ButtonService() {}
 
-    bool pininit_done=false;
     ButtonState cur_state = released;
     ButtonState last_state = released;
     
