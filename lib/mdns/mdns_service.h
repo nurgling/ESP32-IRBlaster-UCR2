@@ -33,6 +33,7 @@ public:
 private:
     explicit MDNSService() {}
     virtual ~MDNSService() {}
+    void enableArduino(uint16_t port = 3232U, bool auth = false);
 
     boolean m_forceRestart = false;
     String m_mdnsHostname;

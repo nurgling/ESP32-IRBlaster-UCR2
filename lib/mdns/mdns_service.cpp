@@ -43,11 +43,34 @@ void MDNSService::startService()
         // MDNS.addService("_uc-dock-ota", "_tcp", m_config.OTA_port);
         ESP_LOGI(TAG, "Started mDNS with hostname: %s", hostname.c_str());
         ESP_LOGI(TAG, "Announcing friendly name: %s", m_config.getFriendlyName().c_str());
+
+        if(BLASTER_ENABLE_OTA){
+            enableArduino();
+        }
         
         ESP_LOGD(TAG, "mDNS services updated");
         m_forceRestart = false;
     }
 }
+
+
+void MDNSService::enableArduino(uint16_t port, bool auth){
+    mdns_txt_item_t arduTxtData[4] = {
+        {(char*)"board"         ,(char*)(ARDUINO_VARIANT)},
+        {(char*)"tcp_check"     ,(char*)"no"},
+        {(char*)"ssh_upload"    ,(char*)"no"},
+        {(char*)"auth_upload"   ,(char*)"no"}
+    };
+
+    if(mdns_service_add(NULL, "_arduino", "_tcp", port, arduTxtData, 4)) {
+        ESP_LOGE(TAG, "Failed adding Arduino service");
+    }
+
+    if(auth && mdns_service_txt_item_set("_arduino", "_tcp", "auth_upload", "yes")){
+        ESP_LOGE(TAG, "Failed setting Arduino txt item");
+    }
+}
+
 void MDNSService::stopService()
 {
     MDNS.end();

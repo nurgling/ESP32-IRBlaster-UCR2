@@ -66,7 +66,9 @@
 #define BLASTER_ENABLE_ETH false
 #endif
 
-
+#ifndef BLASTER_ENABLE_OTA
+#define BLASTER_ENABLE_OTA false
+#endif
 
 
 

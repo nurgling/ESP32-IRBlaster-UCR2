@@ -21,6 +21,7 @@
 
 #include <eth_service.h>
 #include <button_service.h>
+#include <ota_service.h>
 
 
 #include <esp_log.h>
@@ -114,6 +115,10 @@ void setup()
         {
             ESP_LOGE(TAG, "Creation of IR task failed. Returnvalue: %d.\n", taskCreate);
         }
+
+        if (BLASTER_ENABLE_OTA){
+            OTAService::getInstance().startService();
+        }
     }
     else
     {
@@ -133,5 +138,6 @@ void loop()
 {
     WifiService::getInstance().loop();
     ButtonService::getInstance().loop();
+    OTAService::getInstance().loop();
     vTaskDelay(20 / portTICK_PERIOD_MS);
 }
