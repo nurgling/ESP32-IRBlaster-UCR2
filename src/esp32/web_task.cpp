@@ -105,6 +105,53 @@ String getReset(){
     return(reason);
 }
 
+String getUptime()
+{
+    uint32_t uptime_seconds = xTaskGetTickCount() * portTICK_PERIOD_MS / 1000;
+
+    int16_t weeks=0;
+    int16_t days=0;
+    int16_t hours=0;
+    int16_t mins=0;
+    int16_t secs=0;
+
+    mins = uptime_seconds / 60; //calc overall mins
+    secs = uptime_seconds - mins * 60; //calc remaining secs not covered in mins
+    hours = mins / 60; //calc overall hours
+    mins = mins - hours * 60; //calc remaining mins not covered in hours
+    days = hours / 24; //calc overall days
+    hours = hours - days * 24; //calc remaining hours not covered in days
+    weeks = days / 7; //calc overall weeks
+    days = days - weeks * 7; //calc remaining days not covered in weeks
+
+    String uptimeString = "";
+    if (weeks > 0) {
+        uptimeString += weeks;
+        if(weeks == 1){
+            uptimeString += "week ";
+        } else {
+            uptimeString += "weeks ";
+        }
+    }
+    if (days > 0) {
+        uptimeString += days;
+        if(days == 1){
+            uptimeString += "day ";
+        } else {
+            uptimeString += "days ";
+        }
+    } else {
+        if(weeks > 0) {
+            uptimeString += "0 days ";
+        }
+    }
+    char timeString [9]; // "00:00:00" - max length=9 including \0
+    sprintf(timeString, "%02d:%02d:%02d", hours, mins, secs);
+    uptimeString += timeString;
+
+    return uptimeString;
+}
+
 String getIndex()
 {
     String filecontent = "";
@@ -131,7 +178,7 @@ String getIndex()
       {"model", Config::getInstance().getDeviceModel()},
       {"revision", Config::getInstance().getHWRevision()},
       {"heap", getHeap()},
-      {"uptime", "not implemented yet"},
+      {"uptime", getUptime()},
       {"resetreason", getReset()},
     };
     auto result = moustache_render(filecontent, substitutions);
