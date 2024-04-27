@@ -31,9 +31,9 @@
         }
 
         .header {
-            min-width: 400px;
+            min-width: 550px;
             width: 50%;
-            margin: 40px 0 20px 0;
+            margin: 40px 0 0 0;
             text-align: center
         }
 
@@ -44,7 +44,7 @@
 
         ul {
             background-color: #000;
-            min-width: 400px;
+            min-width: 550px;
             width: 50%;
             border-radius: 8px;
             list-style: none;
@@ -86,12 +86,8 @@
         <div class="line-break"></div>
         <ul>
             <li>
-                <div class="title">Name</div>
+                <div class="title">Dock Name</div>
                 <div class="content">{{friendlyname}}</div>
-            </li>
-            <li>
-                <div class="title">Hostname</div>
-                <div class="content">{{hostname}}</div>
             </li>
             <li>
                 <div class="title">Version</div>
@@ -122,6 +118,36 @@
                 <div class="content">{{resetreason}}</div>
             </li>
         </ul>
+        <div class="header">
+            <h1>Network</h1>
+        </div>        
+        <div class="line-break"></div>
+        <ul>
+            <li>
+                <div class="title">Hostname</div>
+                <div class="content">{{hostname}}</div>
+            </li>
+            <li>
+                <div class="title">Wifi SSID</div>
+                <div class="content">{{ssid}}</div>
+            </li>
+            <li>
+                <div class="title">Signal strength</div>
+                <div class="content">{{rssi}}</div>
+            </li>
+            <li>
+                <div class="title">IP</div>
+                <div class="content">{{ipv4}}</div>
+            </li>
+            <li>
+                <div class="title">Gateway</div>
+                <div class="content">{{gatewayv4}}</div>
+            </li>
+            <li>
+                <div class="title">DNS</div>
+                <div class="content">{{dnsv4}}</div>
+            </li>            
+        </ul>        
         <p style="width:100%;text-align:center">For more information and support, visit
             <a href="https://github.com/itcorner/ESP32-IRBlaster-UCR2">GitHub repository</a>
         </p>

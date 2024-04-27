@@ -49,6 +49,27 @@ void WifiService::loop(){
     }
 }
 
+int WifiService::getSignalStrength(){
+    return (WiFi.RSSI());
+}
+
+String WifiService::getSignalStrengthString(){
+    int rssi = getSignalStrength();
+    if(rssi < -90){
+        return "very bad";
+    }
+    if(rssi < -70){
+        return "bad";
+    }
+    if(rssi < -60){
+        return "fair";
+    }
+    if(rssi < -50){
+        return "good";
+    }
+    return "excellent";
+}
+
 
 void WifiService::disconnect(){
     ESP_LOGD(TAG, "Gotten request to stop Wifi radio.");

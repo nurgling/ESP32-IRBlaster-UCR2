@@ -26,6 +26,8 @@ public:
     boolean isActive() {return (WiFi.getMode() == WIFI_STA);}
     void updateMillis() {previousMillis = millis();}
     String getSSID() {return(WiFi.isConnected() ? Config::getInstance().getWifiSsid() : "");}
+    int getSignalStrength();
+    String getSignalStrengthString();
 
 private:
     explicit WifiService() {}

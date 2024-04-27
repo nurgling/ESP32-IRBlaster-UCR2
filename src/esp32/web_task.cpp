@@ -19,6 +19,9 @@
 
 #include <moustache.h>
 
+#include <WiFi.h>
+#include <wifi_service.h>
+
 
 #define SOCKET_DATA_SIZE 4096
 
@@ -49,7 +52,7 @@ void debugWSMessage(const AwsFrameInfo *info, uint8_t *pay_data, size_t pay_len)
 
 String getHeap(){
     uint32_t freeheap = esp_get_free_heap_size();
-    String heapstr = String(freeheap) + "bytes";
+    String heapstr = String(freeheap/1024) + " kbytes";
     return(heapstr);
 }
 
@@ -152,6 +155,16 @@ String getUptime()
     return uptimeString;
 }
 
+String getRSSI(){
+   WifiService &wifiSrv = WifiService::getInstance();
+   if(wifiSrv.isActive()){
+       //return "blub";
+       return wifiSrv.getSignalStrengthString();
+   } else {
+       return "Wifi not connected";
+   }
+}
+
 String getIndex()
 {
     String filecontent = "";
@@ -180,6 +193,11 @@ String getIndex()
       {"heap", getHeap()},
       {"uptime", getUptime()},
       {"resetreason", getReset()},
+      {"ssid", Config::getInstance().getWifiSsid()},
+      {"rssi", getRSSI()},
+      {"ipv4", WiFi.localIP().toString()},
+      {"gatewayv4", WiFi.gatewayIP().toString()},
+      {"dnsv4", WiFi.dnsIP().toString()},
     };
     auto result = moustache_render(filecontent, substitutions);
     return result;
