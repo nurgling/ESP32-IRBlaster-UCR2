@@ -23,6 +23,13 @@ public:
     void connect();
     void loop();
     boolean isActive();
+    boolean isConnected();
+    String getMAC();
+    IPAddress getIP();
+    IPAddress getDNS();
+    IPAddress getGateway();
+    String getConnectionSpeed();
+
     void updateMillis() {previousMillis = millis();}
 
 private:

@@ -58,19 +58,48 @@ static const char * TAG = "eth";
 
 const unsigned long thirtySecs = 30 * 1000UL;
 
+static bool eth_active = false;
+
 void EthService::loop(){
     unsigned long currentMillis = millis();
 }
 
-
-static bool eth_connected = false;
-
-boolean EthService::isActive()
-{
-    return(eth_connected);
+boolean EthService::isActive(){
+    return(eth_active);
 }
 
+boolean EthService::isConnected(){
+    return(ETH.linkUp());
+}
 
+String EthService::getMAC(){
+  return ETH.macAddress();
+}
+
+IPAddress EthService::getIP(){
+    return ETH.localIP();
+}
+IPAddress EthService::getDNS(){
+    return ETH.dnsIP();
+}
+IPAddress EthService::getGateway(){
+    return ETH.gatewayIP();
+}
+String EthService::getConnectionSpeed(){
+  if(!isConnected()){
+    return "Ethernet not connected";
+  }
+  uint speed = ETH.linkSpeed();
+  bool fdx = ETH.fullDuplex();
+  String ret = String(speed);
+  ret = ret + " Mbit ";
+  if(fdx){
+    ret = ret + "FDX";
+  } else {
+    ret = ret + "HDX";
+  }
+  return(ret);
+}
 
 // WARNING: EthEvent is called from a separate FreeRTOS task (thread)!
 void EthEvent(WiFiEvent_t event)
@@ -88,7 +117,7 @@ void EthEvent(WiFiEvent_t event)
       break;
     case ARDUINO_EVENT_ETH_GOT_IP:
       ESP_LOGI(TAG, "ETH got IP: %s", ETH.localIP().toString().c_str());
-      eth_connected = true;
+      eth_active = true;
       // We got a working Ethernet connection. Therefore, we will stop wifi...
       WifiService::getInstance().disconnect();
       // ... and restart mDNS
@@ -96,11 +125,11 @@ void EthEvent(WiFiEvent_t event)
       break;
     case ARDUINO_EVENT_ETH_DISCONNECTED:
       ESP_LOGI(TAG, "ETH Disconnected");
-      eth_connected = false;
+      eth_active = false;
       break;
     case ARDUINO_EVENT_ETH_STOP:
       ESP_LOGI(TAG, "ETH Stopped");
-      eth_connected = false;
+      eth_active = false;
       break;
     default:
       break;

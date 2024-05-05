@@ -22,6 +22,7 @@
 #include <eth_service.h>
 #include <button_service.h>
 #include <ota_service.h>
+#include <fs_service.h>
 
 
 #include <esp_log.h>
@@ -48,6 +49,8 @@ void setup()
     ButtonService &btnSrv = ButtonService::getInstance();
     btnSrv.init();
     
+    SPIFFSService &fsSrv = SPIFFSService::getInstance();
+    fsSrv.init();
 
 
 // Task for controlling the LED is only required if indicator led is available
