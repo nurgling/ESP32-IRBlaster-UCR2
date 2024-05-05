@@ -238,11 +238,11 @@ void TaskLed(void *pvParameters)
         {
         case normal:
             currentMillis = millis();
-            if (currentMillis > lastMillis + 10000)
+            if ((lastMillis == 0) || (currentMillis > lastMillis + 10000))
             {
                 lastMillis = currentMillis;
 
-                breath_once(3000, 0, 0); // breath white
+                breath_once(3000, HSVHue::HUE_GREEN, 255); // breath green
             }
             break;
 
