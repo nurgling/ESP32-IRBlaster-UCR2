@@ -10,6 +10,7 @@
 #include <esp_log.h>
 
 static const char *TAG = "bttask";
+extern void setLedStateBTDiscovery();
 
 void TaskBT(void *pvParameters)
 {
@@ -19,7 +20,8 @@ void TaskBT(void *pvParameters)
 
     // initialize Bluetooth
     btService->init();
-
+    setLedStateBTDiscovery();
+    
     for (;;)
     {
         btService->handle();

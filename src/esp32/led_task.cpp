@@ -41,6 +41,8 @@ enum ledState
     learn,
     reset,
     factoryreset,
+    btdiscovery,
+    networkwait,
     none,
 };
 
@@ -186,7 +188,18 @@ void setLedStateFactoryReset()
 {
     triggerState = factoryreset;
 }
-
+void setLedStateBTDiscovery()
+{
+    triggerState = btdiscovery;
+}
+void setLedStateNetworkWait()
+{
+    triggerState = networkwait;
+}
+void setLedStateOff()
+{
+    triggerState = off;
+}
 
 void setupLedOutput()
 {
@@ -208,7 +221,7 @@ void setupLedOutput()
     ESP_LOGE(TAG, "Unsupported BLASTER_INDICATOR_MODE (%d)!", BLASTER_INDICATOR_MODE);
 #endif
 
-    l_state = normal;
+    l_state = off;
 }
 
 // TODO: rework using led lib to support rgb leds (remark to myself: check out ledwriter)!
@@ -242,13 +255,13 @@ void TaskLed(void *pvParameters)
             {
                 lastMillis = currentMillis;
 
-                breath_once(3000, HSVHue::HUE_GREEN, 255); // breath green
+                breath_once(3000, HSVHue::HUE_GREEN, 255); // breath green slow
             }
             break;
 
         case identify:
         {
-            for (i = 0; i < 2; ++i)
+            for (i = 0; i < 2; ++i) //blink fast
             {
                 set_led_on(transfer_time, HSVHue::HUE_BLUE, 255);
                 vTaskDelay(pause_on / portTICK_PERIOD_MS);
@@ -273,13 +286,13 @@ void TaskLed(void *pvParameters)
 
         case learn:
         {
-            transferColor(current_color, CHSV(HSVHue::HUE_RED, 200, 255), transfer_time);
+            transferColor(current_color, CHSV(HSVHue::HUE_RED, 200, 255), transfer_time); //on red
         }
         break;
 
         case reset:
         {
-            transferColor(current_color, CHSV(HSVHue::HUE_BLUE, 200, 255), transfer_time);
+            transferColor(current_color, CHSV(HSVHue::HUE_BLUE, 200, 255), transfer_time); //fast blink
             vTaskDelay(200 / portTICK_PERIOD_MS);
             set_led_off(transfer_time);
             vTaskDelay((200 - task_idle_time) / portTICK_PERIOD_MS);
@@ -288,17 +301,34 @@ void TaskLed(void *pvParameters)
 
         case factoryreset:
         {
-            transferColor(current_color, CHSV(HSVHue::HUE_RED, 200, 255), transfer_time);
+            transferColor(current_color, CHSV(HSVHue::HUE_RED, 200, 255), transfer_time); //very fast blink
             vTaskDelay(50 / portTICK_PERIOD_MS);
             set_led_off(transfer_time);
             vTaskDelay((50 - task_idle_time) / portTICK_PERIOD_MS);
         }
         break;
 
+        case btdiscovery:
+            currentMillis = millis();
+            if ((lastMillis == 0) || (currentMillis > lastMillis + 1000))
+            {
+                lastMillis = currentMillis;
+
+                breath_once(600, HSVHue::HUE_YELLOW, 255); // breath yellow once per second (fast)
+            }
+            break;
+
+        case networkwait:
+            set_led_on(transfer_time, HSVHue::HUE_AQUA, 255); //on aqua
+            break;
+
+        case off:
+            set_led_off(transfer_time);
+            break;
+
         default:
             break;
         }
-        // TODO: blink the led in the discovery pattern!
 
         vTaskDelay(task_idle_time / portTICK_PERIOD_MS);
     }

@@ -69,21 +69,36 @@ boolean EthService::isActive(){
 }
 
 boolean EthService::isConnected(){
+  if(BLASTER_ENABLE_ETH == true){
     return(ETH.linkUp());
+  }
+  return(false);
 }
 
 String EthService::getMAC(){
-  return ETH.macAddress();
+  if(BLASTER_ENABLE_ETH == true){
+    return ETH.macAddress();
+  }
+  return("");
 }
 
 IPAddress EthService::getIP(){
+  if(BLASTER_ENABLE_ETH == true){
     return ETH.localIP();
+  }
+  return(IPAddress());
 }
 IPAddress EthService::getDNS(){
+  if(BLASTER_ENABLE_ETH == true){
     return ETH.dnsIP();
+  }
+  return(IPAddress());
 }
 IPAddress EthService::getGateway(){
+  if(BLASTER_ENABLE_ETH == true){
     return ETH.gatewayIP();
+  }
+  return(IPAddress());
 }
 String EthService::getConnectionSpeed(){
   if(!isConnected()){

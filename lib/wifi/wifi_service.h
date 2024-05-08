@@ -23,7 +23,8 @@ public:
     void connect();
     void disconnect();
     void loop();
-    boolean isActive() {return (WiFi.getMode() == WIFI_STA);}
+    boolean isActive();
+    boolean isConnected();
     void updateMillis() {previousMillis = millis();}
     String getSSID() {return(WiFi.isConnected() ? Config::getInstance().getWifiSsid() : "");}
     int getSignalStrength();
