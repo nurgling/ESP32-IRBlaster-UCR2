@@ -10,14 +10,19 @@
 
 #include <esp_log.h>
 
-#define FASTLED_RMT_MAX_CHANNELS 1
+//#define FASTLED_RMT_MAX_CHANNELS 1
+#define FASTLED_INTERNAL
 #include <FastLED.h>
 
-// for pixel led
-#define NUM_LEDS 1
-CRGB leds[NUM_LEDS];
-// for pwm led
-const int ledChannel = 0;
+#if BLASTER_INDICATOR_MODE == INDICATOR_LED
+    // for pwm led
+    const int ledChannel = 0;
+#elif BLASTER_INDICATOR_MODE == INDICATOR_PIXEL
+    // for pixel led
+    CRGB indicatorPixel;
+    CRGB *pixelPtr = &indicatorPixel;
+#endif
+
 
 static const char *TAG = "ledtask";
 
@@ -78,6 +83,24 @@ uint16_t scaleprc2pwm(uint8_t prc)
     return (map(prc, 0, 100, 0, ((1 << RESOLUTION) - 1)));
 }
 
+
+
+void outputIndicator(CHSV out){
+
+#if (BLASTER_INDICATOR_MODE == INDICATOR_LED)
+    // output single color led
+    ledcWrite(ledChannel, scalebrightness2pwm(out.val));
+#elif (BLASTER_INDICATOR_MODE == INDICATOR_PIXEL)
+    // output neopixel
+    FastLED.showColor(out);
+#else
+    ESP_LOGE(TAG, "Unsupported BLASTER_INDICATOR_MODE (%d)!", BLASTER_INDICATOR_MODE);
+#endif
+
+}
+
+
+
 void transferColor(CHSV start, CHSV goal, uint32_t duration_ms = 500)
 {
     uint32_t numsteps = duration_ms / UPDATERATE_MS;
@@ -96,20 +119,8 @@ void transferColor(CHSV start, CHSV goal, uint32_t duration_ms = 500)
 
             // output the dimmed values
             CHSV out = CHSV(hue, sat, scalebrightness(val));
+            outputIndicator(out);
 
-            // ESP_LOGD(TAG, "Led Val: %d", out.val);
-
-#if (BLASTER_INDICATOR_MODE == INDICATOR_LED)
-            // output single color led
-            ledcWrite(ledChannel, scalebrightness2pwm(out.val));
-#elif (BLASTER_INDICATOR_MODE == INDICATOR_PIXEL)
-            // output neopixel
-            FastLED.showColor(out);
-#else
-            ESP_LOGE(TAG, "Unsupported BLASTER_INDICATOR_MODE (%d)!", BLASTER_INDICATOR_MODE);
-#endif
-
-            // delay
             vTaskDelay(UPDATERATE_MS / portTICK_PERIOD_MS);
         }
     }
@@ -117,16 +128,7 @@ void transferColor(CHSV start, CHSV goal, uint32_t duration_ms = 500)
     current_color = goal;
     // output the dimmed values
     CHSV out = CHSV(current_color.hue, current_color.sat, scalebrightness(current_color.val));
-
-#if (BLASTER_INDICATOR_MODE == INDICATOR_LED)
-    // output single color led
-    ledcWrite(ledChannel, scalebrightness2pwm(out.val));
-#elif (BLASTER_INDICATOR_MODE == INDICATOR_PIXEL)
-    // output neopixel
-    FastLED.showColor(out);
-#else
-    ESP_LOGE(TAG, "Unsupported BLASTER_INDICATOR_MODE (%d)!", BLASTER_INDICATOR_MODE);
-#endif
+    outputIndicator(out);
 }
 
 void set_led_off(uint32_t duration_ms = 50)
@@ -203,9 +205,8 @@ void setLedStateOff()
 
 void setupLedOutput()
 {
-    pinMode(BLASTER_PIN_INDICATOR, OUTPUT);
-
 #if BLASTER_INDICATOR_MODE == INDICATOR_LED
+    pinMode(BLASTER_PIN_INDICATOR, OUTPUT);
     // configure LED PWM functionalitites
     ledcSetup(ledChannel, 5000, RESOLUTION);
     // attach the channel to the GPIO2 to be controlled
@@ -213,22 +214,24 @@ void setupLedOutput()
     // turn off led
     ledcWrite(ledChannel, 0);
 #elif BLASTER_INDICATOR_MODE == INDICATOR_PIXEL
+    pinMode(BLASTER_PIN_INDICATOR, OUTPUT);
     // setup pixel led
-    //FastLED.addLeds<WS2812B, BLASTER_PIN_INDICATOR, RGB>(leds, NUM_LEDS);
-    FastLED.addLeds<WS2812B, BLASTER_PIN_INDICATOR, GRB>(leds, NUM_LEDS);
+    FastLED.addLeds<WS2812B, BLASTER_PIN_INDICATOR, GRB>(pixelPtr, 1);
+    // turn off led
     FastLED.clear(true);
 #else
     ESP_LOGE(TAG, "Unsupported BLASTER_INDICATOR_MODE (%d)!", BLASTER_INDICATOR_MODE);
 #endif
 
+    //initialize led state
     l_state = off;
 }
 
-// TODO: rework using led lib to support rgb leds (remark to myself: check out ledwriter)!
 void TaskLed(void *pvParameters)
 {
     ESP_LOGD(TAG, "TaskLed running on core %d", xPortGetCoreID());
 
+    //initialize indicator led
     setupLedOutput();
 
     int i = 0;
