@@ -170,6 +170,10 @@ String getRSSI(){
 String getIndex()
 {
     String filecontent = SPIFFSService::getInstance().readFile("/index.html");
+
+    if(filecontent.length() == 0){
+        return("Error reading files from SPIFFS filesystem. Please make sure you have built and uploaded the filesystem to the dock correctly.<br/>Check https://github.com/itcorner/ESP32-IRBlaster-UCR2 for support.");
+    }
     
     moustache_variable_t substitutions[] = {
       {"friendlyname", Config::getInstance().getFriendlyName()},

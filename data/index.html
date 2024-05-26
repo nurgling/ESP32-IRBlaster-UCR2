@@ -22,8 +22,8 @@
         .wrapper {
             width: 100%;
             display: flex;
-            flex-wrap: wrap;
-            justify-content: center
+            flex-direction: column;
+            align-items: center;
         }
 
         .line-break {
@@ -34,7 +34,7 @@
             min-width: 600px;
             width: 50%;
             margin: 10px 0 0 0;
-            text-align: center
+            text-align: center;
         }
 
         h1 {
@@ -48,7 +48,7 @@
             width: 50%;
             border-radius: 8px;
             list-style: none;
-            padding: 0
+            padding: 0;
         }
 
         li {
@@ -90,7 +90,6 @@
         <div class="header">
             <h1>Remote Two - KoeBlaster</h1>
         </div>
-        <div class="line-break"></div>
         <ul>
             <li>
                 <div class="title">Dock Name</div>
@@ -127,8 +126,7 @@
         </ul>
         <div class="header">
             <h1>Wifi Network</h1>
-        </div>        
-        <div class="line-break"></div>
+        </div>
         <ul>
             <li>
                 <div class="title">Hostname</div>
@@ -154,11 +152,10 @@
                 <div class="title">DNS</div>
                 <div class="content">{{dnsv4}}</div>
             </li>            
-        </ul>        
+        </ul>
         <div class="header ethernet">
             <h1>Ethernet Network</h1>
-        </div>        
-        <div class="line-break ethernet"></div>
+        </div>
         <ul class="ethernet">
             <li>
                 <div class="title">Hostname</div>
