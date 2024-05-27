@@ -22,6 +22,7 @@
 #include <eth_service.h>
 #include <button_service.h>
 #include <ota_service.h>
+#include <fs_service.h>
 
 
 #include <esp_log.h>
@@ -29,6 +30,10 @@
 static const char *TAG = "main";
 
 QueueHandle_t irQueueHandle;
+
+extern void setLedStateNetworkWait();
+extern void setLedStateNormal();
+
 
 void setup()
 {
@@ -48,6 +53,8 @@ void setup()
     ButtonService &btnSrv = ButtonService::getInstance();
     btnSrv.init();
     
+    SPIFFSService &fsSrv = SPIFFSService::getInstance();
+    fsSrv.init();
 
 
 // Task for controlling the LED is only required if indicator led is available
@@ -66,13 +73,16 @@ void setup()
 
 
 
-    if (!wifiSrv.isActive() && !ethSrv.isActive()){
-        //waiting 5 secs for eth or wifi to get ready
+    if (wifiSrv.isActive() || ethSrv.isActive()){
+        //networking option in principle is available
+        if(!wifiSrv.isConnected() && !ethSrv.isConnected()){
+          //waiting additional 10 secs for eth or wifi to get ready
+          setLedStateNetworkWait();
         int MAX_NETWORK_WAIT = 10;
         for(int i = 0; i < MAX_NETWORK_WAIT; ++i){
             ESP_LOGD(TAG, "Waiting for network connection %d/%ds ...", i+1, MAX_NETWORK_WAIT);
             vTaskDelay(1000 / portTICK_PERIOD_MS);
-            if (wifiSrv.isActive() || ethSrv.isActive())
+              if (wifiSrv.isConnected() || ethSrv.isConnected())
             {
                 //we are connected.
                 ESP_LOGI(TAG, "Network connection established!");
@@ -80,13 +90,9 @@ void setup()
             }
         }    
     }
-
-
-
-
-    if (wifiSrv.isActive() || ethSrv.isActive())
+    }
+    if (wifiSrv.isConnected() || ethSrv.isConnected())
     {
-
         // Create the queue which will have <QueueElementSize> number of elements, each of size `message_t` and pass the address to <QueueHandle>.
         irQueueHandle = xQueueCreate(IR_QUEUE_SIZE, sizeof(ir_message_t));
 
@@ -97,6 +103,9 @@ void setup()
             while (1)
                 delay(1000); // Halt at this point as is not possible to continue
         }
+
+        setLedStateNormal();
+
 
         // tasks for controlling the ir output via wifi
         TaskHandle_t *webTaskHandle = NULL;

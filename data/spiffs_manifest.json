@@ -1,0 +1,13 @@
+{
+    "manifest_version": "0.1",
+    "files": {
+        "apple-touch-icon.png": "785e08488d68742b99dda341dee1d9c7",
+        "favicon-16x16.png": "efae81d04fb4505dfe3f602aab09a744",
+        "favicon-32x32.png": "68abeb436547d0bb341a1253939fde64",
+        "favicon.ico": "a7a8c4b590928f3dced5612b2c71afa9",
+        "index.html": "65704c4ac68086440ee501c1e2313af3",
+        "koeblaster-192.png": "ba3970aab6aea36551ee102b3d32eeeb",
+        "koeblaster-512.png": "df10457e7196da991551384e548d6d58",
+        "site.webmanifest": "4f54b04328ae1e79f1b06aec0413847e"
+    }
+}

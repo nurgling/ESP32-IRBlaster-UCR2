@@ -21,6 +21,8 @@
 
 #include <WiFi.h>
 #include <wifi_service.h>
+#include <eth_service.h>
+#include <fs_service.h>
 
 
 #define SOCKET_DATA_SIZE 4096
@@ -167,21 +169,11 @@ String getRSSI(){
 
 String getIndex()
 {
-    String filecontent = "";
-    if(!SPIFFS.begin(true)){
-        ESP_LOGE(TAG, "An Error has occurred while mounting SPIFFS");
-        return "ERROR";
+    String filecontent = SPIFFSService::getInstance().readFile("/index.html");
+
+    if(filecontent.length() == 0){
+        return("Error reading files from SPIFFS filesystem. Please make sure you have built and uploaded the filesystem to the dock correctly.<br/>Check https://github.com/itcorner/ESP32-IRBlaster-UCR2 for support.");
     }
-    File file = SPIFFS.open("/index.html");
-    if(!file){
-        ESP_LOGE(TAG, "Failed to open file for reading");
-        return "ERROR";
-    }
-    while(file.available()){
-        filecontent += file.readString();
-    }
-    file.close();
-    SPIFFS.end();
     
     moustache_variable_t substitutions[] = {
       {"friendlyname", Config::getInstance().getFriendlyName()},
@@ -198,6 +190,12 @@ String getIndex()
       {"ipv4", WiFi.localIP().toString()},
       {"gatewayv4", WiFi.gatewayIP().toString()},
       {"dnsv4", WiFi.dnsIP().toString()},
+      {"eth_display", BLASTER_ENABLE_ETH?"block":"none"},
+      {"eth_mac", EthService::getInstance().getMAC()},
+      {"eth_speed", EthService::getInstance().getConnectionSpeed()},
+      {"eth_ipv4", EthService::getInstance().getIP().toString()},
+      {"eth_gatewayv4", EthService::getInstance().getGateway().toString()},
+      {"eth_dnsv4", EthService::getInstance().getDNS().toString()},
     };
     auto result = moustache_render(filecontent, substitutions);
     return result;
@@ -339,6 +337,27 @@ void TaskWeb(void *pvParameters)
     httpserver.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request){
         String response = getIndex();
         request->send(200, "text/html", response);
+    });
+    httpserver.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(SPIFFS, "/favicon.ico");
+    });
+    httpserver.on("/favicon-16x16.png", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(SPIFFS, "/favicon-16x16.png");
+    });
+    httpserver.on("/favicon-32x32.png", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(SPIFFS, "/favicon-32x32.png");
+    });
+    httpserver.on("/apple-touch-icon.png", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(SPIFFS, "/apple-touch-icon.png");
+    });
+    httpserver.on("/koeblaster-192.png", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(SPIFFS, "/koeblaster-192.png");
+    });
+    httpserver.on("/koeblaster-512.png", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(SPIFFS, "/koeblaster-512.png");
+    });
+    httpserver.on("/site.webmanifest", HTTP_GET, [](AsyncWebServerRequest *request){
+        request->send(SPIFFS, "/site.webmanifest", "application/manifest+json");
     });
 
     // start websocket server.

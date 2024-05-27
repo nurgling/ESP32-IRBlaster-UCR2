@@ -12,6 +12,8 @@
 
 static const char * TAG = "wifi";
 
+extern void setLedStateNetworkWait();
+
 const unsigned long thirtySecs = 30 * 1000UL;
 
 void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
@@ -29,6 +31,15 @@ void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
     ESP_LOGD(TAG, "WiFi lost connection. Reason: %d", info.wifi_sta_disconnected.reason);
     WifiService::getInstance().updateMillis();
 }
+
+boolean WifiService::isActive() {
+    return (WiFi.getMode() == WIFI_STA);
+}
+
+boolean WifiService::isConnected(){
+    return(WiFi.status() == WL_CONNECTED);
+}
+
 
 void WifiService::loop(){
     unsigned long currentMillis = millis();
@@ -104,6 +115,7 @@ void WifiService::connect(){
             ESP_LOGD(TAG, "Connection attempt %d/%d ...", i+1, MAX_WIFI_CONNECTION_TRIES);
             WiFi.begin(config.getWifiSsid().c_str(), config.getWifiPassword().c_str());
             // try to connect to wifi for 10 secs
+            setLedStateNetworkWait();
             if (WiFi.waitForConnectResult(10000) == WL_CONNECTED)
             {
                 //we are connected.
